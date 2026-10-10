@@ -8,15 +8,16 @@
 <meta name="description" content="Accesos directos a los paneles de tiempos de espera de la EMT de Madrid.">
 <link rel="apple-touch-icon" href="icono.png">
 <link rel="icon" href="icono.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&display=swap">
 <style>
-  /* Una columna: cuatro bandas azules apiladas, solo el número de línea */
+  /* Una columna: cuatro bandas azules apiladas, número de línea y calle de la parada */
   :root {
     color-scheme: light;
     --azul: #0064b4;
     --azul-oscuro: #004f8f;
     --fondo: #ffffff;
     --numero: #ffffff;
+    --calle: rgba(255, 255, 255, 0.78);
     --font-sign: "Saira Condensed", "Arial Narrow", Impact, sans-serif;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -47,22 +48,40 @@
   }
 
   .linea {
-    display: grid;
-    place-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15em;
     min-width: 0;
+    padding: 0.5rem 1rem;
     background: var(--azul);
     border-radius: 14px;
     color: var(--numero);
     text-decoration: none;
-    font-weight: 700;
-    font-size: clamp(2.75rem, 13vh, 5.5rem);
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
     transition: background 0.15s ease, transform 0.08s ease;
   }
   .linea:hover { background: var(--azul-oscuro); }
   .linea:active { transform: scale(0.98); }
   .linea:focus-visible { outline: 4px solid var(--azul-oscuro); outline-offset: 3px; }
+
+  .numero {
+    font-weight: 700;
+    font-size: clamp(2.5rem, 11vh, 4.75rem);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .calle {
+    font-weight: 500;
+    font-size: clamp(0.85rem, 2.4vh, 1.15rem);
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--calle);
+    text-align: center;
+    text-wrap: balance;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .linea { transition: none; }
@@ -72,10 +91,22 @@
 </head>
 <body>
 <main class="columna">
-  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1574&amp;size=3">126</a>
-  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=5340&amp;size=3">147</a>
-  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1858&amp;size=3">3</a>
-  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1572&amp;size=3">128</a>
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1574&amp;size=3">
+    <span class="numero">126</span>
+    <span class="calle">Francos Rodríguez, 21</span>
+  </a>
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=5340&amp;size=3">
+    <span class="numero">147</span>
+    <span class="calle">Castellana, 87</span>
+  </a>
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1858&amp;size=3">
+    <span class="numero">3</span>
+    <span class="calle">Bravo Murillo, 219</span>
+  </a>
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1572&amp;size=3">
+    <span class="numero">128</span>
+    <span class="calle">Lope de Haro, 8</span>
+  </a>
 </main>
 </body>
 </html>
