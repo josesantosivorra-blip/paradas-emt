@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis paradas</title>
+<meta name="theme-color" content="#0064b4">
+<meta name="description" content="Accesos directos a los paneles de tiempos de espera de la EMT de Madrid.">
+<link rel="apple-touch-icon" href="icono.png">
+<link rel="icon" href="icono.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@700&display=swap">
+<style>
+  /* Una columna: cuatro bandas azules apiladas, solo el número de línea */
+  :root {
+    color-scheme: light;
+    --azul: #0064b4;
+    --azul-oscuro: #004f8f;
+    --fondo: #ffffff;
+    --numero: #ffffff;
+    --font-sign: "Saira Condensed", "Arial Narrow", Impact, sans-serif;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+  body {
+    background: var(--fondo);
+    color: var(--azul);
+    margin: 0;
+    font-family: var(--font-sign);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .columna {
+    height: 100%;
+    display: grid;
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    padding-inline: 16px;
+    padding-block: 16px;
+    max-width: 30rem;
+    margin: 0 auto;
+    min-height: 24rem;
+  }
+
+  .linea {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    background: var(--azul);
+    border-radius: 14px;
+    color: var(--numero);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: clamp(2.75rem, 13vh, 5.5rem);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: background 0.15s ease, transform 0.08s ease;
+  }
+  .linea:hover { background: var(--azul-oscuro); }
+  .linea:active { transform: scale(0.98); }
+  .linea:focus-visible { outline: 4px solid var(--azul-oscuro); outline-offset: 3px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .linea { transition: none; }
+    .linea:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<main class="columna">
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1574&amp;size=3">126</a>
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=5340&amp;size=3">147</a>
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1858&amp;size=3">3</a>
+  <a class="linea" href="https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=1572&amp;size=3">128</a>
+</main>
+</body>
+</html>
