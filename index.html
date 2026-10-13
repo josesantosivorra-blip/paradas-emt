@@ -209,6 +209,41 @@
   .chip.apagado { background: var(--azul-palido); color: rgba(0, 100, 180, 0.7); }
   .chip.pequeno { font-size: 1rem; padding: 0.45rem 0.75rem; }
 
+  .contador {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr 3.2rem;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+  }
+  .paso {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    height: 3.2rem; border: 0; border-radius: 11px;
+    background: var(--azul-palido); color: var(--azul);
+    font-size: 1.7rem; line-height: 1;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+  .paso:active { transform: scale(0.95); background: rgba(0, 100, 180, 0.2); }
+  .paso:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+  .cifra {
+    display: flex; align-items: baseline; justify-content: center; gap: 0.35rem;
+    height: 3.2rem; border: 2px solid rgba(0, 100, 180, 0.3); border-radius: 11px;
+    background: var(--fondo);
+  }
+  .cifra input {
+    font: inherit; font-size: 1.9rem; font-weight: 700; color: var(--azul);
+    background: transparent; border: 0; width: 3.4rem; text-align: right;
+    font-variant-numeric: tabular-nums; padding: 0; align-self: center;
+    -moz-appearance: textfield;
+  }
+  .cifra input::-webkit-outer-spin-button,
+  .cifra input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .cifra input:focus { outline: none; }
+  .cifra span {
+    font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: rgba(0, 100, 180, 0.6); align-self: center;
+  }
+
   .mias { margin-top: 1.1rem; border-top: 2px solid var(--azul-palido); padding-top: 0.8rem; }
   .mias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
   .mias li {
@@ -314,7 +349,16 @@
   <h3>Qué línea vigilo</h3>
   <div class="chips" id="chips-linea"></div>
 
-  <h3>Avisarme cuando falten</h3>
+  <h3>Avisarme cuando al bus le falten</h3>
+  <div class="contador">
+    <button class="paso" id="menos" type="button" aria-label="Un minuto menos">−</button>
+    <div class="cifra">
+      <input id="antelacion" type="number" inputmode="numeric" min="1" max="45" step="1" value="10"
+             aria-label="Minutos de antelación">
+      <span>min</span>
+    </div>
+    <button class="paso" id="mas-min" type="button" aria-label="Un minuto más">+</button>
+  </div>
   <div class="chips" id="chips-antelacion"></div>
 
   <h3>Días y hora a la que lo coges</h3>
@@ -352,6 +396,9 @@
     var activo = document.getElementById('activo');
     var chipsLinea = document.getElementById('chips-linea');
     var chipsAntelacion = document.getElementById('chips-antelacion');
+    var campoAntelacion = document.getElementById('antelacion');
+    var MIN_ANTELACION = 1;
+    var MAX_ANTELACION = 45;
     var cajaDias = document.getElementById('dias');
     var tarjetas = [];
     var ultima = 0;
@@ -722,18 +769,16 @@
         chipsLinea.appendChild(b);
       });
 
+      if (document.activeElement !== campoAntelacion) campoAntelacion.value = a.antelacion;
+
       chipsAntelacion.textContent = '';
       [5, 10, 15, 20].forEach(function (m) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'chip pequeno' + (a.antelacion === m ? '' : ' apagado');
-        b.textContent = m + ' min';
-        b.addEventListener('click', function () {
-          var act = ajustes();
-          act.antelacion = m;
-          escribeLS(LLAVE_AVISO, act);
-          pintaAviso();
-        });
+        b.textContent = m;
+        b.setAttribute('aria-label', 'Avisarme con ' + m + ' minutos');
+        b.addEventListener('click', function () { ponAntelacion(m); });
         chipsAntelacion.appendChild(b);
       });
 
@@ -784,6 +829,31 @@
         cajaDias.appendChild(fila);
       });
     }
+
+    function ponAntelacion(m) {
+      var n = parseInt(m, 10);
+      if (isNaN(n)) n = 10;
+      n = Math.min(MAX_ANTELACION, Math.max(MIN_ANTELACION, n));
+      var act = ajustes();
+      act.antelacion = n;
+      escribeLS(LLAVE_AVISO, act);
+      campoAntelacion.value = n;
+      pintaAviso();
+      return n;
+    }
+
+    document.getElementById('menos').addEventListener('click', function () {
+      ponAntelacion(ajustes().antelacion - 1);
+    });
+    document.getElementById('mas-min').addEventListener('click', function () {
+      ponAntelacion(ajustes().antelacion + 1);
+    });
+    campoAntelacion.addEventListener('change', function () {
+      ponAntelacion(campoAntelacion.value);
+    });
+    campoAntelacion.addEventListener('blur', function () {
+      campoAntelacion.value = ajustes().antelacion;
+    });
 
     function abrirAviso() {
       pintaAviso();
