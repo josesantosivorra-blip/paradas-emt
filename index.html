@@ -39,7 +39,7 @@
   });
 </script>
 <style>
-  /* Columna de bandas azules: numero de linea, calle y proximos buses. Abajo, anadir y avisos. */
+  /* Columna de bandas azules. Cada una se despliega con su propia programacion. */
   @font-face {
     font-family: 'Saira Condensed';
     font-style: normal;
@@ -57,6 +57,7 @@
     --numero: #ffffff;
     --tenue: rgba(255, 255, 255, 0.72);
     --muy-tenue: rgba(255, 255, 255, 0.38);
+    --rojo: #b3261e;
     --font-sign: 'Saira Condensed', 'Arial Narrow', Impact, sans-serif;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -82,7 +83,8 @@
 
   .columna {
     min-height: 100%;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
     padding-inline: 16px;
     padding-block: 16px;
@@ -90,30 +92,55 @@
     margin: 0 auto;
   }
 
-  .linea {
+  /* ---------- tarjeta de linea ---------- */
+  .tarjeta {
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--azul);
+    min-height: 5.4rem;
+  }
+  .tarjeta.colapsada { flex: 1 1 0; }
+  .tarjeta.abierta { flex: none; }
+  .tarjeta.entrando { animation: entra 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes entra {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .cara {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
     position: relative;
     overflow: hidden;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.1em;
+    width: 100%;
     min-width: 0;
-    padding: 0.6rem 1rem;
+    min-height: 5.4rem;
+    padding: 0.7rem 1rem;
+    border: 0;
     background: var(--azul);
-    border-radius: 14px;
     color: var(--numero);
-    text-decoration: none;
-    transform: translateZ(0);
-    transition: background 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+    text-align: center;
+    transition: background 120ms ease;
   }
-  .linea:active { transform: scale(0.975); background: var(--azul-oscuro); }
-  .linea:focus-visible { outline: 4px solid var(--azul-oscuro); outline-offset: 3px; }
-  @media (hover: hover) { .linea:hover { background: var(--azul-oscuro); } }
-  .linea.entrando { animation: entra 320ms cubic-bezier(0.22, 1, 0.36, 1); }
-  @keyframes entra {
-    from { opacity: 0; transform: translateY(14px) scale(0.98); }
-    to   { opacity: 1; transform: none; }
+  .cara:active { background: var(--azul-oscuro); }
+  .cara:focus-visible { outline: 3px solid var(--numero); outline-offset: -5px; }
+  @media (hover: hover) { .cara:hover { background: var(--azul-oscuro); } }
+
+  .numero { font-size: clamp(2.1rem, 8.5vh, 3.9rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .calle {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 0.1em 0.55em;
+    font-size: clamp(0.72rem, 1.9vh, 0.95rem);
+    line-height: 1.25; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--tenue);
+    padding-inline: 0.5rem;
   }
   .icono-reloj {
     width: 1.1em; height: 1.1em; flex: none;
@@ -123,17 +150,6 @@
   .programado {
     display: inline-flex; align-items: center; gap: 0.32em;
     white-space: nowrap; line-height: 1;
-  }
-  .boton-borde .icono-reloj { width: 1.45rem; height: 1.45rem; stroke-width: 2; }
-
-  .numero { font-size: clamp(2.1rem, 8.5vh, 3.9rem); line-height: 1; font-variant-numeric: tabular-nums; }
-  .calle {
-    display: flex; align-items: center; justify-content: center;
-    flex-wrap: wrap; gap: 0.1em 0.55em;
-    font-size: clamp(0.72rem, 1.9vh, 0.95rem);
-    line-height: 1.25; letter-spacing: 0.07em; text-transform: uppercase;
-    color: var(--tenue); text-align: center;
-    padding-inline: 0.5rem;
   }
   .tiempos {
     margin-top: 0.35em; min-height: 1.5em;
@@ -154,137 +170,42 @@
   }
   @keyframes avanza { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 
-  .acciones { display: grid; grid-template-columns: 1fr 3.4rem; gap: 10px; }
-  .boton-borde {
-    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    display: grid; place-items: center; height: 3.4rem;
-    border: 2px dashed rgba(0, 100, 180, 0.4); border-radius: 14px;
-    background: transparent; color: var(--azul); line-height: 1;
-    transition: background 120ms ease, border-color 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* La flechita que indica que se despliega */
+  .pico {
+    position: absolute; right: 0.85rem; top: 50%;
+    width: 0.85rem; height: 0.85rem;
+    margin-top: -0.42rem;
+    border-right: 2.5px solid var(--muy-tenue);
+    border-bottom: 2.5px solid var(--muy-tenue);
+    transform: rotate(45deg);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .boton-borde.mas { font-size: 1.9rem; padding-bottom: 0.18em; }
-  .boton-borde.reloj { font-size: 1.35rem; }
-  .boton-borde.encendido { border-style: solid; border-color: var(--azul); background: var(--azul-palido); }
-  .boton-borde:active { transform: scale(0.98); background: var(--azul-palido); }
-  .boton-borde:focus-visible { outline: 4px solid var(--azul); outline-offset: 3px; }
-  @media (hover: hover) { .boton-borde:hover { background: var(--azul-palido); border-color: var(--azul); } }
+  .tarjeta.abierta .pico { transform: rotate(-135deg); }
 
-  /* Hojas */
-  .velo {
-    position: fixed; inset: 0; background: rgba(0, 29, 53, 0.4);
-    opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index: 10;
+  /* ---------- panel de programacion ---------- */
+  .panel {
+    background: var(--fondo);
+    color: var(--azul);
+    padding: 1rem 1rem 1.1rem;
+    border-top: 3px solid var(--azul-oscuro);
+    animation: despliega 260ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .velo.abierto { opacity: 1; pointer-events: auto; }
-  .hoja {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
-    background: var(--fondo); border-radius: 18px 18px 0 0;
-    padding: 0.7rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
-    max-height: 88vh; overflow-y: auto;
-    transform: translateY(101%);
-    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
-    box-shadow: 0 -10px 40px rgba(0, 40, 75, 0.18);
+  @keyframes despliega {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
   }
-  .hoja.abierta { transform: none; }
-  .hoja.arrastrando { transition: none; }
-  .asa {
-    width: 2.6rem; height: 0.3rem; flex: none;
-    margin: 0 auto 0.8rem;
-    border-radius: 999px;
-    background: rgba(0, 100, 180, 0.3);
-  }
-  .hoja h2 { margin: 0 0 0.1rem; font-size: 1.3rem; }
-  .hoja p.pista {
-    margin: 0 0 0.9rem; font-size: 0.85rem; line-height: 1.35;
-    letter-spacing: 0.04em; text-transform: uppercase; color: rgba(0, 100, 180, 0.65);
-  }
-  .hoja h3 {
-    margin: 1.1rem 0 0.5rem; font-size: 0.85rem; letter-spacing: 0.07em;
+  .panel h3 {
+    margin: 1rem 0 0.5rem; font-size: 0.82rem; letter-spacing: 0.07em;
     text-transform: uppercase; color: rgba(0, 100, 180, 0.65);
   }
 
-  .campo {
-    width: 100%; font: inherit; font-size: 16px; font-weight: 700; letter-spacing: 0.02em;
-    padding: 0.75rem 0.85rem; border: 2px solid rgba(0, 100, 180, 0.3);
-    border-radius: 11px; background: var(--fondo); color: var(--azul);
-  }
-  .campo:focus { outline: none; border-color: var(--azul); }
-  .campo::placeholder { color: rgba(0, 100, 180, 0.4); }
-
-  .estado { margin: 0.75rem 0 0; font-size: 0.95rem; line-height: 1.35; min-height: 1.3em; }
-  .estado.error { color: #b3261e; }
-
-  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.1rem; }
-  .chip {
-    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    font-size: 1.25rem; line-height: 1; padding: 0.5rem 0.9rem; border: 0; border-radius: 10px;
-    background: var(--azul); color: var(--numero); font-variant-numeric: tabular-nums;
-    transition: background 120ms ease, transform 120ms ease;
-  }
-  .chip:active { transform: scale(0.96); background: var(--azul-oscuro); }
-  .chip.ya { background: var(--azul-palido); color: rgba(0, 100, 180, 0.55); }
-  .chip.apagado { background: var(--azul-palido); color: rgba(0, 100, 180, 0.7); }
-  .chip.pequeno { font-size: 1rem; padding: 0.45rem 0.75rem; }
-
-  .contador {
-    display: grid;
-    grid-template-columns: 3.2rem 1fr 3.2rem;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.3rem;
-  }
-  .paso {
-    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    height: 3.2rem; border: 0; border-radius: 11px;
-    background: var(--azul-palido); color: var(--azul);
-    font-size: 1.7rem; line-height: 1;
-    transition: background 120ms ease, transform 120ms ease;
-  }
-  .paso:active { transform: scale(0.95); background: rgba(0, 100, 180, 0.2); }
-  .paso:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
-  .cifra {
-    display: flex; align-items: baseline; justify-content: center; gap: 0.35rem;
-    height: 3.2rem; border: 2px solid rgba(0, 100, 180, 0.3); border-radius: 11px;
-    background: var(--fondo);
-  }
-  .cifra input {
-    font: inherit; font-size: 1.9rem; font-weight: 700; color: var(--azul);
-    background: transparent; border: 0; width: 3.4rem; text-align: right;
-    font-variant-numeric: tabular-nums; padding: 0; align-self: center;
-    -moz-appearance: textfield;
-  }
-  .cifra input::-webkit-outer-spin-button,
-  .cifra input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .cifra input:focus { outline: none; }
-  .cifra span {
-    font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase;
-    color: rgba(0, 100, 180, 0.6); align-self: center;
-  }
-
-  .mias { margin-top: 1.1rem; border-top: 2px solid var(--azul-palido); padding-top: 0.8rem; }
-  .mias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-  .mias li {
-    display: flex; align-items: center; gap: 0.6rem;
-    background: var(--azul-palido); border-radius: 10px; padding: 0.5rem 0.5rem 0.5rem 0.8rem;
-  }
-  .mias .etiqueta { flex: 1; min-width: 0; font-size: 1rem; letter-spacing: 0.02em; }
-  .mias .etiqueta small {
-    display: block; font-size: 0.75rem; letter-spacing: 0.05em;
-    text-transform: uppercase; color: rgba(0, 100, 180, 0.6);
-  }
-  .quitar {
-    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer; border: 0;
-    background: transparent; color: rgba(0, 100, 180, 0.7); font-size: 1.3rem; line-height: 1;
-    padding: 0.25rem 0.5rem; border-radius: 8px;
-  }
-  .quitar:active { background: rgba(0, 100, 180, 0.15); }
-
-  /* Interruptor */
   .interruptor {
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     background: var(--azul-palido); border-radius: 12px;
     padding: 0.7rem 0.7rem 0.7rem 0.9rem; min-height: 3.4rem;
   }
   .interruptor span { font-size: 1.05rem; }
+
   .palanca {
     --alto: 1.9rem;
     --ancho: 3.3rem;
@@ -310,18 +231,45 @@
   .palanca input:checked + i::after { transform: translateX(calc(var(--ancho) - var(--alto))); }
   .palanca input:focus-visible + i { outline: 3px solid var(--azul); outline-offset: 3px; }
 
-  /* Dias y horas */
+  .contador {
+    display: grid; grid-template-columns: 3.2rem 1fr 3.2rem;
+    align-items: center; gap: 0.5rem;
+  }
+  .paso {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    height: 3.2rem; border: 0; border-radius: 11px;
+    background: var(--azul-palido); color: var(--azul);
+    font-size: 1.7rem; line-height: 1;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+  .paso:active { transform: scale(0.95); background: rgba(0, 100, 180, 0.2); }
+  .paso:focus-visible { outline: 3px solid var(--azul); outline-offset: 2px; }
+  .cifra {
+    display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+    height: 3.2rem; border: 2px solid rgba(0, 100, 180, 0.3); border-radius: 11px;
+    background: var(--fondo);
+  }
+  .cifra input {
+    font: inherit; font-size: 1.9rem; font-weight: 700; color: var(--azul);
+    background: transparent; border: 0; width: 3.4rem; text-align: right;
+    font-variant-numeric: tabular-nums; padding: 0;
+    -moz-appearance: textfield;
+  }
+  .cifra input::-webkit-outer-spin-button,
+  .cifra input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .cifra input:focus { outline: none; }
+  .cifra span {
+    font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: rgba(0, 100, 180, 0.6);
+  }
+
   .dias { display: flex; flex-direction: column; gap: 0.45rem; }
   .dia {
     display: flex; align-items: center; gap: 0.75rem;
     background: var(--azul-palido); border-radius: 10px;
-    padding: 0.45rem 0.7rem;
-    min-height: 3rem;
+    padding: 0.45rem 0.7rem; min-height: 3rem;
   }
-  .dia .nombre {
-    width: 2.5rem; flex: none;
-    font-size: 1.05rem; letter-spacing: 0.04em;
-  }
+  .dia .nombre { width: 2.5rem; flex: none; font-size: 1.05rem; letter-spacing: 0.04em; }
   .dia.apagado .nombre, .dia.apagado input[type="time"] { opacity: 0.45; }
   .dia input[type="time"] {
     font: inherit; font-size: 16px; font-weight: 700; color: var(--azul);
@@ -332,31 +280,125 @@
   }
   .dia .palanca { margin-left: auto; }
 
-  .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.9rem; }
-  .cerrar { margin-top: 0.5rem; }
-  .borrar {
-    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    width: 100%; margin-top: 0.6rem; padding: 0.7rem;
-    border: 0; border-radius: 11px; background: transparent;
-    color: #b3261e; font-size: 0.92rem; letter-spacing: 0.06em; text-transform: uppercase;
-    transition: background 120ms ease;
+  .separador { height: 2px; background: var(--azul-palido); margin: 1.1rem 0 0; border: 0; }
+  .nota {
+    margin: 0.5rem 0 0; font-size: 0.82rem; line-height: 1.4;
+    color: rgba(0, 100, 180, 0.65);
   }
-  .borrar:active { background: rgba(179, 38, 30, 0.1); }
-  .borrar.confirmando { background: rgba(179, 38, 30, 0.12); }
-  .cerrar, .secundario {
+  .secundario.puntual-activo { background: var(--rojo); color: #fff; }
+  .estado { margin: 0.8rem 0 0; font-size: 0.95rem; line-height: 1.35; min-height: 1.3em; }
+  .estado.error { color: var(--rojo); }
+
+  .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.9rem; }
+  .secundario, .cerrar {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
     width: 100%; padding: 0.8rem; border: 0; border-radius: 11px;
     background: var(--azul-palido); color: var(--azul);
     font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase;
   }
-  .cerrar:active, .secundario:active { background: rgba(0, 100, 180, 0.18); }
+  .secundario:active, .cerrar:active { background: rgba(0, 100, 180, 0.18); }
   .secundario.principal { background: var(--azul); color: var(--numero); }
   .secundario.principal:active { background: var(--azul-oscuro); }
+  .borrar {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    width: 100%; margin-top: 0.5rem; padding: 0.7rem;
+    border: 0; border-radius: 11px; background: transparent;
+    color: var(--rojo); font-size: 0.92rem; letter-spacing: 0.06em; text-transform: uppercase;
+    transition: background 120ms ease;
+  }
+  .borrar:active { background: rgba(179, 38, 30, 0.1); }
+  .borrar.confirmando { background: rgba(179, 38, 30, 0.12); }
+  .enlace-emt {
+    display: block; margin-top: 0.9rem; padding: 0.55rem;
+    text-align: center; text-decoration: none;
+    color: rgba(0, 100, 180, 0.75); font-size: 0.85rem;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    border-radius: 9px;
+  }
+  .enlace-emt:active { background: var(--azul-palido); }
+
+  /* ---------- boton de anadir ---------- */
+  .boton-borde {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    display: grid; place-items: center; height: 3.4rem; flex: none;
+    border: 2px dashed rgba(0, 100, 180, 0.4); border-radius: 14px;
+    background: transparent; color: var(--azul); line-height: 1;
+    font-size: 1.9rem; padding-bottom: 0.18em;
+    transition: background 120ms ease, border-color 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .boton-borde:active { transform: scale(0.98); background: var(--azul-palido); }
+  .boton-borde:focus-visible { outline: 4px solid var(--azul); outline-offset: 3px; }
+  @media (hover: hover) { .boton-borde:hover { background: var(--azul-palido); border-color: var(--azul); } }
+
+  /* ---------- hoja de anadir ---------- */
+  .velo {
+    position: fixed; inset: 0; background: rgba(0, 29, 53, 0.4);
+    opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index: 10;
+  }
+  .velo.abierto { opacity: 1; pointer-events: auto; }
+  .hoja {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
+    background: var(--fondo); border-radius: 18px 18px 0 0;
+    padding: 0.7rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+    max-height: 88vh; overflow-y: auto;
+    transform: translateY(101%);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 -10px 40px rgba(0, 40, 75, 0.18);
+  }
+  .hoja.abierta { transform: none; }
+  .hoja.arrastrando { transition: none; }
+  .asa {
+    width: 2.6rem; height: 0.3rem; margin: 0 auto 0.8rem;
+    border-radius: 999px; background: rgba(0, 100, 180, 0.3);
+  }
+  .hoja h2 { margin: 0 0 0.1rem; font-size: 1.3rem; }
+  .hoja p.pista {
+    margin: 0 0 0.9rem; font-size: 0.85rem; line-height: 1.35;
+    letter-spacing: 0.04em; text-transform: uppercase; color: rgba(0, 100, 180, 0.65);
+  }
+  .hoja h3 {
+    margin: 0 0 0.5rem; font-size: 0.85rem; letter-spacing: 0.07em;
+    text-transform: uppercase; color: rgba(0, 100, 180, 0.65);
+  }
+  .campo {
+    width: 100%; font: inherit; font-size: 16px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 0.75rem 0.85rem; border: 2px solid rgba(0, 100, 180, 0.3);
+    border-radius: 11px; background: var(--fondo); color: var(--azul);
+  }
+  .campo:focus { outline: none; border-color: var(--azul); }
+  .campo::placeholder { color: rgba(0, 100, 180, 0.4); }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+  .chip {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    font-size: 1.25rem; line-height: 1; padding: 0.5rem 0.9rem; border: 0; border-radius: 10px;
+    background: var(--azul); color: var(--numero); font-variant-numeric: tabular-nums;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+  .chip:active { transform: scale(0.96); background: var(--azul-oscuro); }
+  .chip.ya { background: var(--azul-palido); color: rgba(0, 100, 180, 0.55); }
+  .mias { margin-top: 1.1rem; border-top: 2px solid var(--azul-palido); padding-top: 0.8rem; }
+  .mias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+  .mias li {
+    display: flex; align-items: center; gap: 0.6rem;
+    background: var(--azul-palido); border-radius: 10px; padding: 0.5rem 0.5rem 0.5rem 0.8rem;
+  }
+  .mias .etiqueta { flex: 1; min-width: 0; font-size: 1rem; letter-spacing: 0.02em; }
+  .mias .etiqueta small {
+    display: block; font-size: 0.75rem; letter-spacing: 0.05em;
+    text-transform: uppercase; color: rgba(0, 100, 180, 0.6);
+  }
+  .quitar {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer; border: 0;
+    background: transparent; color: rgba(0, 100, 180, 0.7); font-size: 1.3rem; line-height: 1;
+    padding: 0.25rem 0.5rem; border-radius: 8px;
+  }
+  .quitar:active { background: rgba(0, 100, 180, 0.15); }
+  .cerrar { margin-top: 1rem; }
 
   @media (prefers-reduced-motion: reduce) {
-    .linea, .tiempos, .boton-borde, .hoja, .velo, .chip, .palanca i, .palanca i::after { transition: none; }
-    .linea:active, .boton-borde:active { transform: none; }
-    .linea.entrando { animation: none; }
+    .cara, .tiempos, .boton-borde, .hoja, .velo, .chip, .palanca i, .palanca i::after, .pico { transition: none; }
+    .cara:active, .boton-borde:active { transform: none; }
+    .tarjeta.entrando, .panel { animation: none; }
     .cargando::after { animation: none; width: 100%; opacity: 0.25; }
   }
 </style>
@@ -381,75 +423,36 @@
   <button class="cerrar" id="cerrar-anadir" type="button">Cerrar</button>
 </section>
 
-<section class="hoja" id="hoja-aviso" role="dialog" aria-modal="true" aria-labelledby="titulo-aviso" aria-hidden="true">
-  <div class="asa" aria-hidden="true"></div>
-  <h2 id="titulo-aviso">Avisarme antes de que llegue</h2>
-  <p class="pista">Te suena el móvil cuando tu bus está cerca de verdad</p>
-
-  <label class="interruptor">
-    <span>Avisos activados</span>
-    <span class="palanca"><input type="checkbox" id="activo"><i></i></span>
-  </label>
-
-  <h3>Qué línea vigilo</h3>
-  <div class="chips" id="chips-linea"></div>
-
-  <h3>Avisarme cuando al bus le falten</h3>
-  <div class="contador">
-    <button class="paso" id="menos" type="button" aria-label="Un minuto menos">−</button>
-    <div class="cifra">
-      <input id="antelacion" type="number" inputmode="numeric" min="1" max="45" step="1" value="10"
-             aria-label="Minutos de antelación">
-      <span>min</span>
-    </div>
-    <button class="paso" id="mas-min" type="button" aria-label="Un minuto más">+</button>
-  </div>
-
-  <h3>Días y hora a la que lo coges</h3>
-  <div class="dias" id="dias"></div>
-
-  <p class="estado" id="estado-aviso"></p>
-
-  <div class="fila-botones">
-    <button class="secundario" id="probar" type="button">Probar</button>
-    <button class="secundario principal" id="guardar" type="button">Guardar</button>
-  </div>
-  <button class="borrar" id="borrar" type="button">Borrar la programación</button>
-  <button class="cerrar" id="cerrar-aviso" type="button">Cerrar</button>
-</section>
-
 <script>
   (function () {
-    var LLAVE = 'paradas-emt:extras';
-    var LLAVE_AVISO = 'paradas-emt:aviso';
+    var LLAVE_EXTRAS = 'paradas-emt:extras';
+    var LLAVE_PROG = 'paradas-emt:programados';
+    var LLAVE_PUNT = 'paradas-emt:puntuales';
+    var LLAVE_VIEJA = 'paradas-emt:aviso';
     var LLAVE_ID = 'paradas-emt:id';
+    var MIN_ANTELACION = 1, MAX_ANTELACION = 45;
     var DIAS = [
       { n: 1, nombre: 'Lun' }, { n: 2, nombre: 'Mar' }, { n: 3, nombre: 'Mié' },
       { n: 4, nombre: 'Jue' }, { n: 5, nombre: 'Vie' }, { n: 6, nombre: 'Sáb' }, { n: 0, nombre: 'Dom' }
     ];
-
     var ICONO_RELOJ =
       '<svg class="icono-reloj" viewBox="0 0 24 24" aria-hidden="true">' +
       '<circle cx="12" cy="12" r="9"></circle><path d="M12 6.6V12l3.4 2.1"></path></svg>';
+
     var columna = document.getElementById('columna');
     var velo = document.getElementById('velo');
     var hojaAnadir = document.getElementById('hoja-anadir');
-    var hojaAviso = document.getElementById('hoja-aviso');
     var campo = document.getElementById('campo');
     var estadoAnadir = document.getElementById('estado-anadir');
-    var estadoAviso = document.getElementById('estado-aviso');
     var chips = document.getElementById('chips');
     var cajaMias = document.getElementById('mias');
     var listaMias = document.getElementById('lista-mias');
-    var activo = document.getElementById('activo');
-    var chipsLinea = document.getElementById('chips-linea');
-    var campoAntelacion = document.getElementById('antelacion');
-    var MIN_ANTELACION = 1;
-    var MAX_ANTELACION = 45;
-    var cajaDias = document.getElementById('dias');
+
     var tarjetas = [];
+    var abiertaClave = null;
     var ultima = 0;
 
+    // ---------- almacen ----------
     function leeLS(llave, pordefecto) {
       try { var v = localStorage.getItem(llave); return v ? JSON.parse(v) : pordefecto; }
       catch (e) { return pordefecto; }
@@ -457,8 +460,55 @@
     function escribeLS(llave, valor) {
       try { localStorage.setItem(llave, JSON.stringify(valor)); } catch (e) {}
     }
-    function extras() { var v = leeLS(LLAVE, []); return Array.isArray(v) ? v : []; }
+    function extras() { var v = leeLS(LLAVE_EXTRAS, []); return Array.isArray(v) ? v : []; }
     function todas() { return window.FIJAS.concat(extras()); }
+    function claveDe(p) { return p.linea + '@' + p.parada; }
+
+    function programados() { return leeLS(LLAVE_PROG, {}) || {}; }
+    function puntuales() { return leeLS(LLAVE_PUNT, {}) || {}; }
+
+    function programaDe(clave) {
+      var p = programados()[clave];
+      if (p && p.dias) return p;
+      return { activo: false, antelacion: 10, dias: { '1': '06:30', '2': '06:30', '3': '06:30', '4': '06:30', '5': '06:30' } };
+    }
+    function guardaPrograma(clave, prog) {
+      var todos = programados();
+      todos[clave] = prog;
+      escribeLS(LLAVE_PROG, todos);
+    }
+    function borraPrograma(clave) {
+      var todos = programados();
+      delete todos[clave];
+      escribeLS(LLAVE_PROG, todos);
+    }
+    function puntualDe(clave) {
+      var p = puntuales()[clave];
+      if (!p) return null;
+      if (p.caduca && Date.now() > p.caduca) { borraPuntual(clave); return null; }
+      return p;
+    }
+    function guardaPuntual(clave, p) {
+      var todos = puntuales();
+      todos[clave] = p;
+      escribeLS(LLAVE_PUNT, todos);
+    }
+    function borraPuntual(clave) {
+      var todos = puntuales();
+      delete todos[clave];
+      escribeLS(LLAVE_PUNT, todos);
+    }
+
+    // La version anterior guardaba un solo aviso suelto: lo pasamos al nuevo formato.
+    (function migrar() {
+      var viejo = leeLS(LLAVE_VIEJA, null);
+      if (!viejo || !viejo.dias || !viejo.linea) return;
+      var clave = viejo.linea + '@' + viejo.parada;
+      if (!programados()[clave]) {
+        guardaPrograma(clave, { activo: !!viejo.activo, antelacion: viejo.antelacion || 10, dias: viejo.dias });
+      }
+      try { localStorage.removeItem(LLAVE_VIEJA); } catch (e) {}
+    })();
 
     function miId() {
       var id = null;
@@ -468,18 +518,6 @@
         try { localStorage.setItem(LLAVE_ID, id); } catch (e) {}
       }
       return id;
-    }
-
-    function ajustesPorDefecto() {
-      var p = window.FIJAS[0];
-      return {
-        activo: false, linea: p.linea, parada: p.parada, calle: p.calle, antelacion: 10,
-        dias: { '1': '06:30', '2': '06:30', '3': '06:30', '4': '06:30', '5': '06:30' }
-      };
-    }
-    function ajustes() {
-      var a = leeLS(LLAVE_AVISO, null);
-      return a && a.dias ? a : ajustesPorDefecto();
     }
 
     // ---------- lectura del panel de la EMT ----------
@@ -510,6 +548,98 @@
         .sort(function (a, b) { return a - b; });
     }
 
+    // ---------- notificaciones ----------
+    function aBytes(b64url) {
+      var b64 = (b64url + '='.repeat((4 - b64url.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+      var crudo = atob(b64);
+      var salida = new Uint8Array(crudo.length);
+      for (var i = 0; i < crudo.length; i++) salida[i] = crudo.charCodeAt(i);
+      return salida;
+    }
+    function esStandalone() {
+      return window.navigator.standalone === true ||
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+    function esIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+    function puedeAvisar() {
+      return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    }
+    function porQueNoPuede() {
+      if (!puedeAvisar()) return 'Este navegador no admite avisos. Abre la app desde el icono de la pantalla de inicio.';
+      if (esIOS() && !esStandalone()) return 'Para que suene el móvil, añade la app a la pantalla de inicio y ábrela desde ahí.';
+      if (Notification.permission === 'denied') return 'Tienes las notificaciones bloqueadas. Actívalas en los ajustes del móvil.';
+      return null;
+    }
+
+    function suscribir() {
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (previa) {
+          if (previa) return previa;
+          return fetch(window.VIGILANTE + '/clave')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              return reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: aBytes(d.publica)
+              });
+            });
+        });
+      }).then(function (s) { return s.toJSON(); });
+    }
+
+    function asegurarAlta() {
+      var motivo = porQueNoPuede();
+      if (motivo) return Promise.reject(new Error(motivo));
+      if (Notification.permission === 'granted') return suscribir();
+      return Notification.requestPermission().then(function (permiso) {
+        if (permiso !== 'granted') throw new Error('Sin permiso de notificaciones no puedo avisarte.');
+        return suscribir();
+      });
+    }
+
+    function listaAvisos() {
+      var prog = programados();
+      var salida = [];
+      todas().forEach(function (p) {
+        var c = claveDe(p);
+        var a = prog[c];
+        if (!a) return;
+        salida.push({
+          linea: p.linea, parada: p.parada, calle: p.calle,
+          activo: !!a.activo, antelacion: a.antelacion || 10, dias: a.dias || {}
+        });
+      });
+      return salida;
+    }
+    function listaPuntuales() {
+      var pun = puntuales();
+      var salida = [];
+      todas().forEach(function (p) {
+        var c = claveDe(p);
+        var u = pun[c];
+        if (!u) return;
+        if (u.caduca && Date.now() > u.caduca) return;
+        salida.push({
+          clave: c, linea: p.linea, parada: p.parada, calle: p.calle,
+          antelacion: u.antelacion || 10, caduca: u.caduca
+        });
+      });
+      return salida;
+    }
+
+    function sincronizar(suscripcion) {
+      var cuerpo = { id: miId(), avisos: listaAvisos(), puntuales: listaPuntuales() };
+      if (suscripcion) cuerpo.suscripcion = suscripcion;
+      return fetch(window.VIGILANTE + '/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo)
+      }).then(function (r) { if (!r.ok) throw new Error('el vigilante ha respondido ' + r.status); return r.json(); });
+    }
+
     // ---------- pintado de la columna ----------
     function etiqueta(min) {
       if (min === 0) return 'llegando';
@@ -517,7 +647,8 @@
       return min + ' min';
     }
     function pinta(t, lista) {
-      t.nodo.classList.remove('cargando');
+      t.cara.classList.remove('cargando');
+      t.ultimosTiempos = lista;
       if (!lista || !lista.length) {
         t.tiempos.innerHTML = '<span class="aviso">sin buses ahora</span>';
       } else {
@@ -530,7 +661,7 @@
       t.tiempos.classList.add('visible');
     }
     function falla(t) {
-      t.nodo.classList.remove('cargando');
+      t.cara.classList.remove('cargando');
       t.tiempos.innerHTML = '<span class="aviso">sin conexión</span>';
       t.tiempos.classList.remove('refrescando');
       t.tiempos.classList.add('visible');
@@ -542,57 +673,72 @@
       }).catch(function () { falla(t); });
     }
 
+    function pintaMarca(t) {
+      var caja = t.cara.querySelector('.calle');
+      var vieja = caja.querySelector('.programado');
+      if (vieja) vieja.remove();
+      var clave = claveDe(t.info);
+      var prog = programados()[clave];
+      var punt = puntualDe(clave);
+      if (!punt && !(prog && prog.activo)) return;
+
+      var marca = document.createElement('span');
+      marca.className = 'programado';
+      marca.innerHTML = ICONO_RELOJ;
+      if (punt) {
+        marca.appendChild(document.createTextNode(punt.antelacion + ' min'));
+        marca.setAttribute('aria-label', 'Aviso puntual con ' + punt.antelacion + ' minutos');
+      } else {
+        var hoy = prog.dias[String(new Date().getDay())] || null;
+        if (hoy) marca.appendChild(document.createTextNode(hoy));
+        marca.setAttribute('aria-label', hoy ? 'Aviso programado hoy a las ' + hoy : 'Aviso programado');
+      }
+      caja.appendChild(marca);
+    }
+
     function render(nuevaClave) {
       var lista = todas();
-      var a = ajustes();
       columna.textContent = '';
       tarjetas = [];
-      columna.style.gridTemplateRows = 'repeat(' + lista.length + ', minmax(5.2rem, 1fr)) auto';
 
       var frag = document.createDocumentFragment();
       lista.forEach(function (p) {
-        var el = document.createElement('a');
-        el.className = 'linea cargando';
-        if (nuevaClave && p.linea + '@' + p.parada === nuevaClave) el.classList.add('entrando');
-        el.href = window.URL_PARADA(p.parada);
-        el.target = '_blank';
-        el.rel = 'noopener';
-        el.innerHTML = '<span class="numero"></span><span class="calle"></span><span class="tiempos"></span>';
-        el.querySelector('.numero').textContent = p.linea;
-        var cajaCalle = el.querySelector('.calle');
-        var textoCalle = document.createElement('span');
-        textoCalle.textContent = p.calle;
-        cajaCalle.appendChild(textoCalle);
-        if (a.activo && a.linea === p.linea && a.parada === p.parada) {
-          var hoy = a.dias[String(new Date().getDay())] || null;
-          var marca = document.createElement('span');
-          marca.className = 'programado';
-          marca.innerHTML = ICONO_RELOJ;
-          if (hoy) marca.appendChild(document.createTextNode(hoy));
-          marca.setAttribute('aria-label', hoy ? 'Aviso programado hoy a las ' + hoy : 'Aviso activado');
-          cajaCalle.appendChild(marca);
-        }
-        frag.appendChild(el);
-        tarjetas.push({ info: p, nodo: el, tiempos: el.querySelector('.tiempos') });
+        var clave = claveDe(p);
+        var tarjeta = document.createElement('div');
+        tarjeta.className = 'tarjeta ' + (abiertaClave === clave ? 'abierta' : 'colapsada');
+        if (nuevaClave && clave === nuevaClave) tarjeta.classList.add('entrando');
+
+        var cara = document.createElement('button');
+        cara.type = 'button';
+        cara.className = 'cara cargando';
+        cara.setAttribute('aria-expanded', abiertaClave === clave ? 'true' : 'false');
+        cara.innerHTML =
+          '<span class="numero"></span>' +
+          '<span class="calle"><span class="texto-calle"></span></span>' +
+          '<span class="tiempos"></span>' +
+          '<span class="pico" aria-hidden="true"></span>';
+        cara.querySelector('.numero').textContent = p.linea;
+        cara.querySelector('.texto-calle').textContent = p.calle;
+
+        var t = {
+          info: p, clave: clave, tarjeta: tarjeta, cara: cara,
+          tiempos: cara.querySelector('.tiempos'), panel: null, ultimosTiempos: null
+        };
+        cara.addEventListener('click', function () { alterna(t); });
+        tarjeta.appendChild(cara);
+        frag.appendChild(tarjeta);
+        tarjetas.push(t);
+        pintaMarca(t);
+        if (abiertaClave === clave) montaPanel(t);
       });
 
-      var acciones = document.createElement('div');
-      acciones.className = 'acciones';
       var mas = document.createElement('button');
-      mas.className = 'boton-borde mas';
+      mas.className = 'boton-borde';
       mas.type = 'button';
       mas.setAttribute('aria-label', 'Añadir una línea');
       mas.textContent = '+';
       mas.addEventListener('click', abrirAnadir);
-      var reloj = document.createElement('button');
-      reloj.className = 'boton-borde reloj' + (a.activo ? ' encendido' : '');
-      reloj.type = 'button';
-      reloj.setAttribute('aria-label', 'Configurar el aviso de bus');
-      reloj.innerHTML = ICONO_RELOJ;
-      reloj.addEventListener('click', abrirAviso);
-      acciones.appendChild(mas);
-      acciones.appendChild(reloj);
-      frag.appendChild(acciones);
+      frag.appendChild(mas);
       columna.appendChild(frag);
 
       ultima = Date.now();
@@ -611,7 +757,269 @@
       });
     }
 
-    // ---------- hojas ----------
+    function alterna(t) {
+      if (abiertaClave === t.clave) {
+        abiertaClave = null;
+        if (t.panel) { t.panel.remove(); t.panel = null; }
+        t.tarjeta.classList.remove('abierta');
+        t.tarjeta.classList.add('colapsada');
+        t.cara.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      tarjetas.forEach(function (otra) {
+        if (otra.panel) { otra.panel.remove(); otra.panel = null; }
+        otra.tarjeta.classList.remove('abierta');
+        otra.tarjeta.classList.add('colapsada');
+        otra.cara.setAttribute('aria-expanded', 'false');
+      });
+      abiertaClave = t.clave;
+      t.tarjeta.classList.remove('colapsada');
+      t.tarjeta.classList.add('abierta');
+      t.cara.setAttribute('aria-expanded', 'true');
+      montaPanel(t);
+      setTimeout(function () {
+        t.tarjeta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 60);
+    }
+
+    // ---------- panel de cada linea ----------
+    function montaPanel(t) {
+      if (t.panel) return;
+      var clave = t.clave;
+      var panel = document.createElement('div');
+      panel.className = 'panel';
+      panel.innerHTML =
+        '<h3>Avisarme cuando al bus le falten</h3>' +
+        '<div class="contador">' +
+          '<button class="paso menos" type="button" aria-label="Un minuto menos">−</button>' +
+          '<div class="cifra"><input class="minutos" type="number" inputmode="numeric" min="1" max="45" step="1" aria-label="Minutos de antelación"><span>min</span></div>' +
+          '<button class="paso mas" type="button" aria-label="Un minuto más">+</button>' +
+        '</div>' +
+        '<h3>Solo por esta vez</h3>' +
+        '<button class="secundario principal puntual" type="button"></button>' +
+        '<p class="nota puntual-nota"></p>' +
+        '<hr class="separador">' +
+        '<h3>Todas las semanas</h3>' +
+        '<label class="interruptor"><span>Repetir estos días</span><span class="palanca"><input type="checkbox" class="activo"><i></i></span></label>' +
+        '<div class="dias"></div>' +
+        '<p class="estado"></p>' +
+        '<div class="fila-botones">' +
+          '<button class="secundario probar" type="button">Probar</button>' +
+          '<button class="secundario principal guardar" type="button">Guardar</button>' +
+        '</div>' +
+        '<button class="borrar" type="button">Borrar la programación</button>' +
+        '<a class="enlace-emt" target="_blank" rel="noopener">Ver el panel de la EMT</a>';
+
+      t.tarjeta.appendChild(panel);
+      t.panel = panel;
+
+      var campoMin = panel.querySelector('.minutos');
+      var botonPuntual = panel.querySelector('.puntual');
+      var notaPuntual = panel.querySelector('.puntual-nota');
+      var activo = panel.querySelector('.activo');
+      var cajaDias = panel.querySelector('.dias');
+      var estado = panel.querySelector('.estado');
+      var botonBorrar = panel.querySelector('.borrar');
+      panel.querySelector('.enlace-emt').href = window.URL_PARADA(t.info.parada);
+
+      function di(texto, esError) {
+        estado.textContent = texto;
+        estado.classList.toggle('error', !!esError);
+      }
+
+      function ponMinutos(m) {
+        var n = parseInt(m, 10);
+        if (isNaN(n)) n = 10;
+        n = Math.min(MAX_ANTELACION, Math.max(MIN_ANTELACION, n));
+        var prog = programaDe(clave);
+        prog.antelacion = n;
+        guardaPrograma(clave, prog);
+        campoMin.value = n;
+        return n;
+      }
+
+      function pintaPuntual() {
+        var u = puntualDe(clave);
+        if (u) {
+          botonPuntual.textContent = 'Cancelar el aviso de ' + u.antelacion + ' min';
+          botonPuntual.classList.add('puntual-activo');
+          notaPuntual.textContent = 'Vigilando este bus. Te aviso en cuanto le falten ' + u.antelacion + ' min y luego se apaga solo.';
+        } else {
+          botonPuntual.textContent = 'Avisarme con este bus';
+          botonPuntual.classList.remove('puntual-activo');
+          notaPuntual.textContent = 'Un solo aviso, para ahora mismo. No hace falta elegir hora.';
+        }
+        pintaMarca(t);
+      }
+
+      function pintaDias() {
+        var prog = programaDe(clave);
+        activo.checked = !!prog.activo;
+        cajaDias.textContent = '';
+        DIAS.forEach(function (d) {
+          var hora = prog.dias[String(d.n)] || null;
+          var fila = document.createElement('div');
+          fila.className = 'dia' + (hora ? '' : ' apagado');
+
+          var nombre = document.createElement('span');
+          nombre.className = 'nombre';
+          nombre.textContent = d.nombre;
+
+          var reloj = document.createElement('input');
+          reloj.type = 'time';
+          reloj.value = hora || '06:30';
+          reloj.disabled = !hora;
+          reloj.setAttribute('aria-label', 'Hora del ' + d.nombre);
+
+          var marca = document.createElement('label');
+          marca.className = 'palanca pequena';
+          var chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.checked = !!hora;
+          chk.setAttribute('aria-label', d.nombre);
+          marca.appendChild(chk);
+          marca.appendChild(document.createElement('i'));
+
+          chk.addEventListener('change', function () {
+            var p = programaDe(clave);
+            if (chk.checked) p.dias[String(d.n)] = reloj.value || '06:30';
+            else delete p.dias[String(d.n)];
+            guardaPrograma(clave, p);
+            pintaDias();
+          });
+          reloj.addEventListener('change', function () {
+            var p = programaDe(clave);
+            p.dias[String(d.n)] = reloj.value;
+            guardaPrograma(clave, p);
+            pintaMarca(t);
+          });
+
+          fila.appendChild(nombre);
+          fila.appendChild(reloj);
+          fila.appendChild(marca);
+          cajaDias.appendChild(fila);
+        });
+        pintaMarca(t);
+      }
+
+      campoMin.value = programaDe(clave).antelacion;
+      pintaPuntual();
+      pintaDias();
+
+      panel.querySelector('.menos').addEventListener('click', function () {
+        ponMinutos(programaDe(clave).antelacion - 1);
+      });
+      panel.querySelector('.mas').addEventListener('click', function () {
+        ponMinutos(programaDe(clave).antelacion + 1);
+      });
+      campoMin.addEventListener('change', function () { ponMinutos(campoMin.value); });
+      campoMin.addEventListener('blur', function () { campoMin.value = programaDe(clave).antelacion; });
+
+      // --- aviso puntual ---
+      botonPuntual.addEventListener('click', function () {
+        if (puntualDe(clave)) {
+          borraPuntual(clave);
+          pintaPuntual();
+          di('Aviso puntual cancelado.', false);
+          sincronizar().catch(function () {});
+          return;
+        }
+        var n = ponMinutos(campoMin.value);
+        di('Preparando el aviso…', false);
+        asegurarAlta().then(function (s) {
+          guardaPuntual(clave, { antelacion: n, caduca: Date.now() + 2 * 3600 * 1000 });
+          return sincronizar(s);
+        }).then(function () {
+          pintaPuntual();
+          var ahora = t.ultimosTiempos && t.ultimosTiempos.length ? t.ultimosTiempos[0] : null;
+          if (ahora === null) di('Listo. Te aviso cuando al ' + t.info.linea + ' le falten ' + n + ' min.', false);
+          else if (ahora <= n) di('Ojo: al próximo ya le faltan ' + ahora + ' min, así que te avisaré enseguida.', false);
+          else di('Listo. Al próximo le faltan ' + ahora + ' min; te aviso cuando queden ' + n + '.', false);
+        }).catch(function (e) {
+          di(e && e.message ? e.message : String(e), true);
+        });
+      });
+
+      // --- programacion semanal ---
+      activo.addEventListener('change', function () {
+        var prog = programaDe(clave);
+        prog.activo = activo.checked;
+        guardaPrograma(clave, prog);
+        pintaMarca(t);
+        if (!prog.activo) {
+          di('Repetición apagada.', false);
+          sincronizar().catch(function () {});
+          return;
+        }
+        di('Activando…', false);
+        asegurarAlta().then(function (s) { return sincronizar(s); })
+          .then(function () { di('Listo. Pulsa «Probar» para comprobarlo.', false); })
+          .catch(function (e) {
+            activo.checked = false;
+            var p = programaDe(clave);
+            p.activo = false;
+            guardaPrograma(clave, p);
+            pintaMarca(t);
+            di(e && e.message ? e.message : String(e), true);
+          });
+      });
+
+      panel.querySelector('.guardar').addEventListener('click', function () {
+        di('Guardando…', false);
+        var prog = programaDe(clave);
+        var haceFalta = prog.activo || !!puntualDe(clave);
+        var paso = haceFalta ? asegurarAlta() : Promise.resolve(null);
+        paso.then(function (s) { return sincronizar(s); })
+          .then(function () { di('Guardado.', false); pintaMarca(t); })
+          .catch(function (e) { di('No he podido guardar: ' + (e && e.message ? e.message : e), true); });
+      });
+
+      panel.querySelector('.probar').addEventListener('click', function () {
+        di('Mandando un aviso de prueba…', false);
+        asegurarAlta().then(function (s) { return sincronizar(s); }).then(function () {
+          return fetch(window.VIGILANTE + '/probar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: miId(), linea: t.info.linea })
+          });
+        }).then(function (r) {
+          return r.json().then(function (d) { return { ok: r.ok, d: d }; });
+        }).then(function (res) {
+          if (res.ok) di('Mandado. Debería llegarte en unos segundos.', false);
+          else di('No ha salido: ' + (res.d.error || res.d.detalle || res.d.estado), true);
+        }).catch(function (e) {
+          di(e && e.message ? e.message : String(e), true);
+        });
+      });
+
+      var esperando = false, relojConfirmacion = null;
+      function reponer() {
+        esperando = false;
+        botonBorrar.classList.remove('confirmando');
+        botonBorrar.textContent = 'Borrar la programación';
+        clearTimeout(relojConfirmacion);
+      }
+      botonBorrar.addEventListener('click', function () {
+        if (!esperando) {
+          esperando = true;
+          botonBorrar.classList.add('confirmando');
+          botonBorrar.textContent = 'Pulsa otra vez para borrarlo';
+          relojConfirmacion = setTimeout(reponer, 5000);
+          return;
+        }
+        reponer();
+        borraPrograma(clave);
+        borraPuntual(clave);
+        activo.checked = false;
+        pintaDias();
+        pintaPuntual();
+        campoMin.value = programaDe(clave).antelacion;
+        di('Borrado. Esta línea ya no te avisará.', false);
+        sincronizar().catch(function () {});
+      });
+    }
+
+    // ---------- hoja de anadir ----------
     var abierta = null;
     function abrirHoja(h) {
       abierta = h;
@@ -623,70 +1031,54 @@
     }
     function cerrarHoja() {
       if (!abierta) return;
-      if (typeof reponerBorrar === 'function') reponerBorrar();
       velo.style.opacity = '';
       velo.classList.remove('abierto');
       abierta.classList.remove('abierta');
       abierta.setAttribute('aria-hidden', 'true');
       abierta = null;
     }
-    // Arrastrar la hoja hacia abajo para cerrarla, cuando ya esta arriba del todo.
+
     function hazArrastrable(h) {
       var inicioY = 0, inicioX = 0, recorrido = 0, activa = false, decidido = false;
-
       h.addEventListener('touchstart', function (e) {
         if (e.touches.length !== 1 || h.scrollTop > 0) { activa = false; return; }
         inicioY = e.touches[0].clientY;
         inicioX = e.touches[0].clientX;
-        recorrido = 0;
-        activa = true;
-        decidido = false;
+        recorrido = 0; activa = true; decidido = false;
       }, { passive: true });
-
       h.addEventListener('touchmove', function (e) {
         if (!activa) return;
         var dy = e.touches[0].clientY - inicioY;
         var dx = e.touches[0].clientX - inicioX;
-
         if (!decidido) {
-          // Si el dedo va hacia arriba o de lado, esto no es un cierre: lo dejamos en paz.
           if (dy < 4 || Math.abs(dx) > Math.abs(dy)) { activa = false; return; }
           decidido = true;
           h.classList.add('arrastrando');
         }
         if (h.scrollTop > 0) return;
-
         e.preventDefault();
         recorrido = Math.max(0, dy);
         h.style.transform = 'translateY(' + (recorrido * 0.9) + 'px)';
         velo.style.opacity = String(Math.max(0, 1 - recorrido / 420));
       }, { passive: false });
-
       function soltar() {
         if (!activa) return;
         activa = false;
         h.classList.remove('arrastrando');
         velo.style.opacity = '';
-        if (recorrido > 90) {
-          h.style.transform = '';
-          cerrarHoja();
-        } else {
-          h.style.transform = '';
-        }
+        h.style.transform = '';
+        if (recorrido > 90) cerrarHoja();
         recorrido = 0;
       }
       h.addEventListener('touchend', soltar);
       h.addEventListener('touchcancel', soltar);
     }
     hazArrastrable(hojaAnadir);
-    hazArrastrable(hojaAviso);
 
     velo.addEventListener('click', cerrarHoja);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarHoja(); });
     document.getElementById('cerrar-anadir').addEventListener('click', cerrarHoja);
-    document.getElementById('cerrar-aviso').addEventListener('click', cerrarHoja);
 
-    // ---------- anadir lineas ----------
     var buscadas = {};
     var ultimoTexto = '';
     var temporizador = null;
@@ -704,24 +1096,24 @@
       if (/^\d{1,5}$/.test(t)) return t;
       return null;
     }
-    function di(caja, texto, esError) {
-      caja.textContent = texto;
-      caja.classList.toggle('error', !!esError);
+    function diAnadir(texto, esError) {
+      estadoAnadir.textContent = texto;
+      estadoAnadir.classList.toggle('error', !!esError);
     }
     function buscar(parada) {
       chips.textContent = '';
-      di(estadoAnadir, 'Buscando la parada ' + parada + '…', false);
+      diAnadir('Buscando la parada ' + parada + '…', false);
       var p = buscadas[parada] || (buscadas[parada] = window.pedir(parada));
       p.then(function (html) {
         var datos = analizar(html);
         if (!datos.filas.length) {
-          di(estadoAnadir, 'La parada ' + parada + ' no da ninguna línea ahora mismo.', true);
+          diAnadir('La parada ' + parada + ' no da ninguna línea ahora mismo.', true);
           return;
         }
         var yaTengo = {};
-        todas().forEach(function (x) { yaTengo[x.linea + '@' + x.parada] = true; });
+        todas().forEach(function (x) { yaTengo[claveDe(x)] = true; });
         var vistas = {};
-        di(estadoAnadir, datos.calle ? 'Parada ' + parada + ' · ' + datos.calle : 'Parada ' + parada, false);
+        diAnadir(datos.calle ? 'Parada ' + parada + ' · ' + datos.calle : 'Parada ' + parada, false);
         datos.filas.forEach(function (f) {
           if (vistas[f.linea]) return;
           vistas[f.linea] = true;
@@ -738,12 +1130,12 @@
             b.addEventListener('click', function () {
               var v = extras();
               v.push({ linea: f.linea, parada: parada, calle: datos.calle });
-              escribeLS(LLAVE, v);
+              escribeLS(LLAVE_EXTRAS, v);
               cerrarHoja();
               campo.value = '';
               ultimoTexto = '';
               chips.textContent = '';
-              di(estadoAnadir, '', false);
+              diAnadir('', false);
               render(f.linea + '@' + parada);
             });
           }
@@ -751,7 +1143,7 @@
         });
       }).catch(function () {
         delete buscadas[parada];
-        di(estadoAnadir, 'No he podido leer esa parada. Revisa el enlace o inténtalo de nuevo.', true);
+        diAnadir('No he podido leer esa parada. Revisa el enlace o inténtalo de nuevo.', true);
       });
     }
     function pintaMias() {
@@ -773,17 +1165,16 @@
         b.setAttribute('aria-label', 'Quitar la línea ' + p.linea);
         b.addEventListener('click', function () {
           var lista = extras();
-          lista.splice(i, 1);
-          escribeLS(LLAVE, lista);
-          var a = ajustes();
-          if (a.linea === p.linea && a.parada === p.parada) {
-            var base = window.FIJAS[0];
-            a.linea = base.linea; a.parada = base.parada; a.calle = base.calle;
-            escribeLS(LLAVE_AVISO, a);
-            guardarEnVigilante(a);
+          var fuera = lista.splice(i, 1)[0];
+          escribeLS(LLAVE_EXTRAS, lista);
+          if (fuera) {
+            borraPrograma(claveDe(fuera));
+            borraPuntual(claveDe(fuera));
+            if (abiertaClave === claveDe(fuera)) abiertaClave = null;
           }
           pintaMias();
           render();
+          sincronizar().catch(function () {});
         });
         li.appendChild(etq);
         li.appendChild(b);
@@ -796,9 +1187,9 @@
       ultimoTexto = texto;
       clearTimeout(temporizador);
       chips.textContent = '';
-      if (!texto.trim()) { di(estadoAnadir, '', false); return; }
+      if (!texto.trim()) { diAnadir('', false); return; }
       var parada = numeroDeParada(texto);
-      if (!parada) { di(estadoAnadir, 'Pega un enlace con stopnum=… o escribe el número de parada.', true); return; }
+      if (!parada) { diAnadir('Pega un enlace con stopnum=… o escribe el número de parada.', true); return; }
       temporizador = setTimeout(function () { buscar(parada); }, 250);
     });
     campo.addEventListener('keydown', function (e) {
@@ -807,299 +1198,6 @@
         var parada = numeroDeParada(campo.value);
         if (parada) buscar(parada);
       }
-    });
-
-    // ---------- avisos ----------
-    function aBytes(b64url) {
-      var b64 = (b64url + '='.repeat((4 - b64url.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
-      var crudo = atob(b64);
-      var salida = new Uint8Array(crudo.length);
-      for (var i = 0; i < crudo.length; i++) salida[i] = crudo.charCodeAt(i);
-      return salida;
-    }
-    function esStandalone() {
-      return window.navigator.standalone === true ||
-        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-    }
-    function esIOS() {
-      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    }
-    function puedeAvisar() {
-      return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-    }
-
-    function guardarEnVigilante(a, suscripcion) {
-      var cuerpo = { id: miId(), ajustes: a };
-      if (suscripcion) cuerpo.suscripcion = suscripcion;
-      return fetch(window.VIGILANTE + '/registro', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cuerpo)
-      }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
-    }
-
-    function suscribir() {
-      return navigator.serviceWorker.ready.then(function (reg) {
-        return reg.pushManager.getSubscription().then(function (previa) {
-          if (previa) return previa;
-          return fetch(window.VIGILANTE + '/clave')
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-              return reg.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: aBytes(d.publica)
-              });
-            });
-        });
-      }).then(function (s) { return s.toJSON(); });
-    }
-
-    function pintaAviso() {
-      var a = ajustes();
-      activo.checked = !!a.activo;
-
-      chipsLinea.textContent = '';
-      todas().forEach(function (p) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'chip pequeno' + (a.linea === p.linea && a.parada === p.parada ? '' : ' apagado');
-        b.textContent = p.linea;
-        b.title = p.calle;
-        b.setAttribute('aria-label', 'Vigilar la línea ' + p.linea + ' en ' + p.calle);
-        b.addEventListener('click', function () {
-          var act = ajustes();
-          act.linea = p.linea; act.parada = p.parada; act.calle = p.calle;
-          escribeLS(LLAVE_AVISO, act);
-          pintaAviso();
-        });
-        chipsLinea.appendChild(b);
-      });
-
-      if (document.activeElement !== campoAntelacion) campoAntelacion.value = a.antelacion;
-
-      cajaDias.textContent = '';
-      DIAS.forEach(function (d) {
-        var hora = a.dias[String(d.n)] || null;
-        var fila = document.createElement('div');
-        fila.className = 'dia' + (hora ? '' : ' apagado');
-
-        var marca = document.createElement('label');
-        marca.className = 'palanca pequena';
-        var chk = document.createElement('input');
-        chk.type = 'checkbox';
-        chk.checked = !!hora;
-        chk.setAttribute('aria-label', d.nombre);
-        var pint = document.createElement('i');
-        marca.appendChild(chk);
-        marca.appendChild(pint);
-
-        var nombre = document.createElement('span');
-        nombre.className = 'nombre';
-        nombre.textContent = d.nombre;
-
-        var reloj = document.createElement('input');
-        reloj.type = 'time';
-        reloj.value = hora || '06:30';
-        reloj.disabled = !hora;
-        reloj.setAttribute('aria-label', 'Hora del ' + d.nombre);
-
-        chk.addEventListener('change', function () {
-          var act = ajustes();
-          if (chk.checked) act.dias[String(d.n)] = reloj.value || '06:30';
-          else delete act.dias[String(d.n)];
-          escribeLS(LLAVE_AVISO, act);
-          pintaAviso();
-        });
-        reloj.addEventListener('change', function () {
-          var act = ajustes();
-          act.dias[String(d.n)] = reloj.value;
-          escribeLS(LLAVE_AVISO, act);
-        });
-
-        fila.appendChild(nombre);
-        fila.appendChild(reloj);
-        fila.appendChild(marca);
-        cajaDias.appendChild(fila);
-      });
-    }
-
-    function ponAntelacion(m) {
-      var n = parseInt(m, 10);
-      if (isNaN(n)) n = 10;
-      n = Math.min(MAX_ANTELACION, Math.max(MIN_ANTELACION, n));
-      var act = ajustes();
-      act.antelacion = n;
-      escribeLS(LLAVE_AVISO, act);
-      campoAntelacion.value = n;
-      pintaAviso();
-      return n;
-    }
-
-    document.getElementById('menos').addEventListener('click', function () {
-      ponAntelacion(ajustes().antelacion - 1);
-    });
-    document.getElementById('mas-min').addEventListener('click', function () {
-      ponAntelacion(ajustes().antelacion + 1);
-    });
-    campoAntelacion.addEventListener('change', function () {
-      ponAntelacion(campoAntelacion.value);
-    });
-    campoAntelacion.addEventListener('blur', function () {
-      campoAntelacion.value = ajustes().antelacion;
-    });
-
-    function abrirAviso() {
-      pintaAviso();
-      var a = ajustes();
-      if (!puedeAvisar()) {
-        di(estadoAviso, 'Este navegador no admite avisos. En el iPhone tienes que abrirla desde el icono de la pantalla de inicio.', true);
-      } else if (esIOS() && !esStandalone()) {
-        di(estadoAviso, 'Para que suene el móvil, añade la app a la pantalla de inicio y ábrela desde ahí.', true);
-      } else if (Notification.permission === 'denied') {
-        di(estadoAviso, 'Tienes las notificaciones bloqueadas para esta app. Actívalas en los ajustes del móvil.', true);
-      } else if (a.activo && Notification.permission === 'granted') {
-        di(estadoAviso, 'Comprobando el alta de este móvil…', false);
-        fetch(window.VIGILANTE + '/registro?id=' + encodeURIComponent(miId()))
-          .then(function (r) { return r.json(); })
-          .then(function (d) {
-            if (d && d.suscripcion) {
-              di(estadoAviso, 'Todo listo. Te avisaré cuando al ' + a.linea + ' le falten ' + a.antelacion + ' min.', false);
-              return;
-            }
-            di(estadoAviso, 'Dando de alta este móvil…', false);
-            return suscribir()
-              .then(function (s) { return guardarEnVigilante(ajustes(), s); })
-              .then(function () { di(estadoAviso, 'Listo. Pulsa «Probar» para comprobarlo.', false); });
-          })
-          .catch(function () {
-            di(estadoAviso, 'No he podido hablar con el vigilante. Revisa la conexión.', true);
-          });
-      } else {
-        di(estadoAviso, '', false);
-      }
-      abrirHoja(hojaAviso);
-    }
-
-    activo.addEventListener('change', function () {
-      var a = ajustes();
-      a.activo = activo.checked;
-      escribeLS(LLAVE_AVISO, a);
-      if (!a.activo) { di(estadoAviso, 'Avisos apagados.', false); return; }
-      if (!puedeAvisar() || (esIOS() && !esStandalone())) {
-        activo.checked = false;
-        a.activo = false;
-        escribeLS(LLAVE_AVISO, a);
-        di(estadoAviso, 'Antes tienes que abrir la app desde el icono de la pantalla de inicio.', true);
-        return;
-      }
-      di(estadoAviso, 'Pidiendo permiso…', false);
-      Notification.requestPermission().then(function (permiso) {
-        if (permiso !== 'granted') {
-          activo.checked = false;
-          var act = ajustes();
-          act.activo = false;
-          escribeLS(LLAVE_AVISO, act);
-          di(estadoAviso, 'Sin permiso de notificaciones no puedo avisarte.', true);
-          return;
-        }
-        di(estadoAviso, 'Conectando con el vigilante…', false);
-        return suscribir().then(function (s) {
-          return guardarEnVigilante(ajustes(), s);
-        }).then(function () {
-          di(estadoAviso, 'Listo. Pulsa «Probar» para comprobarlo.', false);
-          render();
-        });
-      }).catch(function (e) {
-        di(estadoAviso, 'No he podido activarlo: ' + (e && e.message ? e.message : e), true);
-      });
-    });
-
-    document.getElementById('guardar').addEventListener('click', function () {
-      var a = ajustes();
-      di(estadoAviso, 'Guardando…', false);
-      var paso = (a.activo && puedeAvisar() && Notification.permission === 'granted')
-        ? suscribir() : Promise.resolve(null);
-      paso.then(function (s) { return guardarEnVigilante(a, s); })
-        .then(function () {
-          di(estadoAviso, 'Guardado.', false);
-          render();
-          setTimeout(cerrarHoja, 600);
-        })
-        .catch(function (e) {
-          di(estadoAviso, 'No he podido guardar: ' + (e && e.message ? e.message : e), true);
-        });
-    });
-
-    document.getElementById('probar').addEventListener('click', function () {
-      if (!activo.checked) {
-        di(estadoAviso, 'Enciende antes «Avisos activados», arriba del todo.', true);
-        return;
-      }
-      di(estadoAviso, 'Mandando un aviso de prueba…', false);
-      fetch(window.VIGILANTE + '/probar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: miId() })
-      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
-        .then(function (res) {
-          if (res.ok) { di(estadoAviso, 'Mandado. Debería llegarte en unos segundos.', false); return; }
-          if (res.d && res.d.error === 'sin suscripción') {
-            di(estadoAviso, 'Este móvil aún no está dado de alta. Apaga y vuelve a encender «Avisos activados».', true);
-            return;
-          }
-          di(estadoAviso, 'No ha salido: ' + (res.d.error || res.d.detalle || res.d.estado), true);
-        })
-        .catch(function (e) { di(estadoAviso, 'No he podido mandarlo: ' + e.message, true); });
-    });
-
-    var botonBorrar = document.getElementById('borrar');
-    var esperandoConfirmacion = false;
-    var relojConfirmacion = null;
-
-    function reponerBorrar() {
-      esperandoConfirmacion = false;
-      botonBorrar.classList.remove('confirmando');
-      botonBorrar.textContent = 'Borrar la programación';
-      clearTimeout(relojConfirmacion);
-    }
-
-    botonBorrar.addEventListener('click', function () {
-      if (!esperandoConfirmacion) {
-        esperandoConfirmacion = true;
-        botonBorrar.classList.add('confirmando');
-        botonBorrar.textContent = 'Pulsa otra vez para borrarlo';
-        relojConfirmacion = setTimeout(reponerBorrar, 5000);
-        return;
-      }
-      reponerBorrar();
-      di(estadoAviso, 'Borrando…', false);
-
-      // Se va todo: los ajustes de este movil, su alta en el vigilante y la suscripcion.
-      try { localStorage.removeItem(LLAVE_AVISO); } catch (e) {}
-      activo.checked = false;
-
-      var tareas = [
-        fetch(window.VIGILANTE + '/baja', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: miId() })
-        }).catch(function () {})
-      ];
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        tareas.push(
-          navigator.serviceWorker.ready
-            .then(function (reg) { return reg.pushManager.getSubscription(); })
-            .then(function (s) { return s ? s.unsubscribe() : null; })
-            .catch(function () {})
-        );
-      }
-
-      Promise.all(tareas).then(function () {
-        pintaAviso();
-        render();
-        di(estadoAviso, 'Borrado. No te avisaré hasta que lo vuelvas a programar.', false);
-      });
     });
 
     // ---------- arranque ----------
