@@ -96,15 +96,15 @@
   .linea {
     position: relative;
     overflow: hidden;
-    flex: 1 1 0;
+    flex: 1 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.1em;
     min-width: 0;
-    min-height: 5.4rem;
-    padding: 0.7rem 1rem;
+    min-height: 6.9rem;
+    padding: 0.75rem 1rem;
     background: var(--azul);
     border-radius: 14px;
     color: var(--numero);
@@ -122,7 +122,11 @@
     to   { opacity: 1; transform: none; }
   }
 
-  .numero { font-size: clamp(2.1rem, 8.5vh, 3.9rem); line-height: 1; font-variant-numeric: tabular-nums; }
+  .numero {
+    font-size: clamp(2rem, 8vh, 3.6rem); line-height: 1.02;
+    font-variant-numeric: tabular-nums;
+    max-width: 100%; overflow-wrap: anywhere;
+  }
   .calle {
     display: flex; align-items: center; justify-content: center;
     flex-wrap: wrap; gap: 0.1em 0.55em;
@@ -388,7 +392,7 @@
   .chip:active { transform: scale(0.96); background: var(--azul-oscuro); }
   .chip.ya { background: var(--azul-palido); color: rgba(0, 100, 180, 0.55); }
   .chip.apagado { background: var(--azul-palido); color: rgba(0, 100, 180, 0.7); }
-  .chip.pequeno { font-size: 1.1rem; padding: 0.5rem 0.85rem; }
+  .chip.pequeno { font-size: 1.1rem; padding: 0.5rem 0.85rem; white-space: nowrap; }
   .chip .punto {
     display: inline-block; width: 0.42rem; height: 0.42rem; border-radius: 50%;
     background: currentColor; margin-left: 0.4rem; vertical-align: 0.12em; opacity: 0.85;
@@ -434,7 +438,7 @@
   <p class="estado" id="estado-anadir"></p>
   <div class="chips" id="chips"></div>
   <div class="mias" id="mias" hidden>
-    <h3>Líneas que has añadido</h3>
+    <h3>Tus líneas · toca la ✕ para quitar una</h3>
     <ul id="lista-mias"></ul>
   </div>
   <button class="cerrar" id="cerrar-anadir" type="button">Cerrar</button>
@@ -453,6 +457,7 @@
 
 <script>
   (function () {
+    var LLAVE_LINEAS = 'paradas-emt:lineas';
     var LLAVE_EXTRAS = 'paradas-emt:extras';
     var LLAVE_PROG = 'paradas-emt:programados';
     var LLAVE_PUNT = 'paradas-emt:puntuales';
@@ -495,7 +500,18 @@
       try { localStorage.setItem(llave, JSON.stringify(valor)); } catch (e) {}
     }
     function extras() { var v = leeLS(LLAVE_EXTRAS, []); return Array.isArray(v) ? v : []; }
-    function todas() { return window.FIJAS.concat(extras()); }
+
+    // Antes habia cuatro lineas fijas y otras anadidas aparte. Ahora es una sola lista
+    // que se puede editar entera, asi que la primera vez la construimos juntando ambas.
+    function todas() {
+      var v = leeLS(LLAVE_LINEAS, null);
+      if (!Array.isArray(v)) {
+        v = window.FIJAS.concat(extras());
+        escribeLS(LLAVE_LINEAS, v);
+      }
+      return v;
+    }
+    function guardaLineas(v) { escribeLS(LLAVE_LINEAS, v); }
     function claveDe(p) { return p.linea + '@' + p.parada; }
 
     function programados() { return leeLS(LLAVE_PROG, {}) || {}; }
@@ -1034,7 +1050,9 @@
         asegurarAlta().then(function (s) { return sincronizar(s); })
           .then(function () { diS('Activado. Pulsa «Probar» para comprobarlo.', false); pintaBanner(); })
           .catch(function (e) {
-            // Dejamos la programación guardada: lo que falta es el permiso, no el ajuste.
+            // Falta el permiso, no el ajuste: guardamos igualmente la programación en el
+            // vigilante para que funcione en cuanto este móvil pueda recibir avisos.
+            sincronizar().catch(function () {});
             diS((e && e.message ? e.message : String(e)) + ' La programación queda guardada.', true);
             pintaBanner();
           });
@@ -1305,9 +1323,9 @@
           } else {
             b.setAttribute('aria-label', 'Añadir la línea ' + f.linea);
             b.addEventListener('click', function () {
-              var v = extras();
+              var v = todas();
               v.push({ linea: f.linea, parada: parada, calle: datos.calle });
-              escribeLS(LLAVE_EXTRAS, v);
+              guardaLineas(v);
               cerrarHoja();
               campo.value = '';
               ultimoTexto = '';
@@ -1324,7 +1342,7 @@
       });
     }
     function pintaMias() {
-      var v = extras();
+      var v = todas();
       listaMias.textContent = '';
       cajaMias.hidden = v.length === 0;
       v.forEach(function (p, i) {
@@ -1341,9 +1359,9 @@
         b.textContent = '✕';
         b.setAttribute('aria-label', 'Quitar la línea ' + p.linea);
         b.addEventListener('click', function () {
-          var lista = extras();
+          var lista = todas();
           var fuera = lista.splice(i, 1)[0];
-          escribeLS(LLAVE_EXTRAS, lista);
+          guardaLineas(lista);
           if (fuera) {
             borraPrograma(claveDe(fuera));
             borraPuntual(claveDe(fuera));
