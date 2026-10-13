@@ -187,6 +187,22 @@
     margin-top: 0.3rem; font-size: 0.8rem; line-height: 1.4;
     color: rgba(0, 100, 180, 0.65); letter-spacing: 0.005em;
   }
+  .banner {
+    margin: 0 0 0.9rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 11px;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    background: rgba(179, 38, 30, 0.1);
+    color: var(--rojo);
+  }
+  .banner.bien { background: var(--azul-palido); color: rgba(0, 100, 180, 0.8); }
+  .estado-bloque {
+    margin: -0.1rem 0 0; font-size: 0.85rem; line-height: 1.4;
+    color: rgba(0, 100, 180, 0.75);
+  }
+  .estado-bloque.error { color: var(--rojo); }
+  .estado-bloque:empty { display: none; }
   .rotulo {
     font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
     color: rgba(0, 100, 180, 0.6); margin-bottom: -0.45rem;
@@ -421,6 +437,7 @@
   <div class="asa" aria-hidden="true"></div>
   <h2 id="titulo-aviso">Avisarme antes de que llegue</h2>
   <p class="pista">Elige la línea que quieres vigilar</p>
+  <p class="banner" id="banner" hidden></p>
   <div class="chips" id="chips-linea"></div>
   <p class="nota" id="pista-linea">Toca una línea para programarla.</p>
   <div id="caja-panel"></div>
@@ -456,6 +473,7 @@
     var chipsLinea = document.getElementById('chips-linea');
     var cajaPanel = document.getElementById('caja-panel');
     var pistaLinea = document.getElementById('pista-linea');
+    var banner = document.getElementById('banner');
 
     var tarjetas = [];
     var elegida = null;
@@ -814,6 +832,7 @@
             '<button class="paso mas-p" type="button" aria-label="Un minuto más">+</button>' +
           '</div>' +
           '<button class="secundario principal puntual" type="button"></button>' +
+          '<p class="estado-bloque estado-p"></p>' +
         '</div>' +
         // Bloque 2: la rutina de cada semana
         '<div class="bloque bloque-semanal">' +
@@ -832,6 +851,7 @@
           '</div>' +
           '<div class="rotulo">Días y hora a la que lo coges</div>' +
           '<div class="dias"></div>' +
+          '<p class="estado-bloque estado-s"></p>' +
         '</div>' +
         '<p class="estado"></p>' +
         '<div class="fila-botones">' +
@@ -851,11 +871,21 @@
       var activo = panel.querySelector('.activo');
       var cajaDias = panel.querySelector('.dias');
       var estado = panel.querySelector('.estado');
+      var estadoP = panel.querySelector('.estado-p');
+      var estadoS = panel.querySelector('.estado-s');
       var botonBorrar = panel.querySelector('.borrar');
 
       function di(texto, esError) {
         estado.textContent = texto;
         estado.classList.toggle('error', !!esError);
+      }
+      function diP(texto, esError) {
+        estadoP.textContent = texto || '';
+        estadoP.classList.toggle('error', !!esError);
+      }
+      function diS(texto, esError) {
+        estadoS.textContent = texto || '';
+        estadoS.classList.toggle('error', !!esError);
       }
       function acota(m, pordefecto) {
         var n = parseInt(m, 10);
@@ -965,23 +995,27 @@
         if (puntualDe(clave)) {
           borraPuntual(clave);
           pintaPuntual();
-          di('Aviso cancelado.', false);
+          diP('Aviso cancelado.', false);
           sincronizar().catch(function () {});
           return;
         }
         var n = ponMinPuntual(minP.value);
-        di('Preparando el aviso…', false);
+        var ahora = t.ultimosTiempos && t.ultimosTiempos.length ? t.ultimosTiempos[0] : null;
+        if (ahora === null) {
+          diP('Ahora mismo la EMT no da ningún ' + t.info.linea + ' en esta parada. Inténtalo cuando aparezca alguno.', true);
+          return;
+        }
+        diP('Preparando el aviso…', false);
         asegurarAlta().then(function (s) {
           guardaPuntual(clave, { antelacion: n, caduca: Date.now() + 2 * 3600 * 1000 });
           return sincronizar(s);
         }).then(function () {
           pintaPuntual();
-          var ahora = t.ultimosTiempos && t.ultimosTiempos.length ? t.ultimosTiempos[0] : null;
-          if (ahora === null) di('Listo. Te aviso cuando al ' + t.info.linea + ' le falten ' + n + ' min.', false);
-          else if (ahora <= n) di('Ojo: al próximo ya le faltan ' + ahora + ' min, así que te avisaré enseguida.', false);
-          else di('Listo. Al próximo le faltan ' + ahora + ' min; te aviso cuando queden ' + n + '.', false);
+          if (ahora <= n) diP('Al próximo ya le faltan ' + ahora + ' min, así que te avisaré enseguida.', false);
+          else diP('Listo. Al próximo le faltan ' + ahora + ' min; te aviso cuando queden ' + n + '.', false);
         }).catch(function (e) {
-          di(e && e.message ? e.message : String(e), true);
+          diP(e && e.message ? e.message : String(e), true);
+          pintaBanner();
         });
       });
 
@@ -993,21 +1027,17 @@
         bloqueSemanal.classList.toggle('apagada', !prog.activo);
         trasCambio(t);
         if (!prog.activo) {
-          di('Repetición apagada.', false);
+          diS('Repetición apagada.', false);
           sincronizar().catch(function () {});
           return;
         }
-        di('Activando…', false);
+        diS('Activando…', false);
         asegurarAlta().then(function (s) { return sincronizar(s); })
-          .then(function () { di('Listo. Pulsa «Probar» para comprobarlo.', false); })
+          .then(function () { diS('Activado. Pulsa «Probar» para comprobarlo.', false); pintaBanner(); })
           .catch(function (e) {
-            activo.checked = false;
-            var pr = programaDe(clave);
-            pr.activo = false;
-            guardaPrograma(clave, pr);
-            bloqueSemanal.classList.add('apagada');
-            trasCambio(t);
-            di(e && e.message ? e.message : String(e), true);
+            // Dejamos la programación guardada: lo que falta es el permiso, no el ajuste.
+            diS((e && e.message ? e.message : String(e)) + ' La programación queda guardada.', true);
+            pintaBanner();
           });
       });
 
@@ -1102,11 +1132,67 @@
     }
 
     function abrirAviso() {
+      pintaBanner();
+      reconciliar();
       if (!elegida) cajaPanel.textContent = '';
       pistaLinea.hidden = !!elegida;
       pintaChips();
       if (elegida) { var t = tarjetaDe(elegida); if (t) montaPanel(t); }
       abrirHoja(hojaAviso);
+    }
+
+    // El vigilante borra el aviso puntual en cuanto salta. Aqui nos enteramos
+    // de ello y quitamos el puntito, que si no se quedaba para siempre.
+    var ultimaReconciliacion = 0;
+    function reconciliar(forzar) {
+      if (!forzar && Date.now() - ultimaReconciliacion < 15000) return Promise.resolve();
+      ultimaReconciliacion = Date.now();
+      return fetch(window.VIGILANTE + '/registro?id=' + encodeURIComponent(miId()))
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !Array.isArray(d.puntuales)) return;
+          var vivos = {};
+          d.puntuales.forEach(function (u) { if (u && u.clave) vivos[u.clave] = true; });
+          var locales = puntuales();
+          var cambio = false;
+          Object.keys(locales).forEach(function (c) {
+            if (!vivos[c]) { delete locales[c]; cambio = true; }
+          });
+          if (!cambio) return;
+          escribeLS(LLAVE_PUNT, locales);
+          tarjetas.forEach(function (x) { pintaMarca(x); });
+          refrescaBotonReloj();
+          if (abierta === hojaAviso) {
+            pintaChips();
+            if (elegida) { var tt = tarjetaDe(elegida); if (tt) montaPanel(tt); }
+          }
+        })
+        .catch(function () {});
+    }
+
+    // Si hay avisos guardados y el movil puede recibirlos, nos damos de alta solos.
+    function autoRegistro() {
+      if (!hayAlgunAviso()) return;
+      if (porQueNoPuede()) return;
+      if (Notification.permission !== 'granted') return;
+      suscribir().then(function (s) { return sincronizar(s); }).catch(function () {});
+    }
+
+    function pintaBanner() {
+      var motivo = porQueNoPuede();
+      if (motivo) {
+        banner.hidden = false;
+        banner.className = 'banner';
+        banner.textContent = motivo;
+        return;
+      }
+      if (Notification.permission !== 'granted') {
+        banner.hidden = false;
+        banner.className = 'banner bien';
+        banner.textContent = 'La primera vez que actives un aviso te pediré permiso para las notificaciones.';
+        return;
+      }
+      banner.hidden = true;
     }
 
     // ---------- hoja de anadir ----------
@@ -1294,12 +1380,18 @@
 
     // ---------- arranque ----------
     render();
+    reconciliar(true);
+    autoRegistro();
 
     setInterval(function () {
-      if (document.visibilityState === 'visible') refrescar();
+      if (document.visibilityState !== 'visible') return;
+      refrescar();
+      reconciliar();
     }, 30000);
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && Date.now() - ultima > 10000) refrescar();
+      if (document.visibilityState !== 'visible') return;
+      reconciliar();
+      if (Date.now() - ultima > 10000) refrescar();
     });
     window.addEventListener('pageshow', function (e) {
       if (e.persisted && Date.now() - ultima > 10000) refrescar();
@@ -1308,6 +1400,9 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+      navigator.serviceWorker.addEventListener('message', function (e) {
+        if (e.data && e.data.tipo === 'aviso-lanzado') reconciliar(true);
       });
     }
   })();

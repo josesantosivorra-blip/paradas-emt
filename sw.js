@@ -1,5 +1,5 @@
 // Cachea la app para que abra sin cobertura, y recibe los avisos de bus.
-const CACHE = 'paradas-emt-v14';
+const CACHE = 'paradas-emt-v15';
 const SHELL = ['./', './index.html', './icono.png', './manifest.json'];
 const ESPERA_RED = 2000;
 
@@ -71,6 +71,12 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let datos = { titulo: 'Tu bus está cerca', cuerpo: '', url: './' };
   try { if (e.data) datos = Object.assign(datos, e.data.json()); } catch (err) {}
+  // Avisamos a la app, si esta abierta, de que este aviso ya ha saltado.
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((ventanas) => ventanas.forEach((v) => v.postMessage({ tipo: 'aviso-lanzado' })))
+      .catch(() => {})
+  );
   e.waitUntil(
     self.registration.showNotification(datos.titulo, {
       body: datos.cuerpo,
