@@ -227,9 +227,10 @@
     width: var(--ancho); height: var(--alto); flex: none;
   }
   .palanca.pequena { --alto: 1.6rem; --ancho: 2.8rem; --borde: 0.17rem; }
-  .palanca input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+  .palanca input { position: absolute; inset: 0; z-index: 1; opacity: 0; margin: 0; cursor: pointer; }
   .palanca i {
     position: absolute; inset: 0; border-radius: 999px; display: block;
+    pointer-events: none; /* el toque siempre va a la casilla, no al dibujo */
     background: rgba(0, 100, 180, 0.28); transition: background 160ms ease;
   }
   .palanca i::after {
@@ -860,7 +861,7 @@
               '<div class="titulo">Cada semana</div>' +
               '<div class="sub">Se repite solo, los días y a la hora a la que sueles cogerlo.</div>' +
             '</div>' +
-            '<span class="palanca"><input type="checkbox" class="activo"><i></i></span>' +
+            '<label class="palanca"><input type="checkbox" class="activo"><i></i></label>' +
           '</div>' +
           '<div class="rotulo">Avisarme cuando le falten</div>' +
           '<div class="contador">' +
