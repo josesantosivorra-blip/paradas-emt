@@ -381,7 +381,6 @@
     </div>
     <button class="paso" id="mas-min" type="button" aria-label="Un minuto más">+</button>
   </div>
-  <div class="chips" id="chips-antelacion"></div>
 
   <h3>Días y hora a la que lo coges</h3>
   <div class="dias" id="dias"></div>
@@ -420,7 +419,6 @@
     var listaMias = document.getElementById('lista-mias');
     var activo = document.getElementById('activo');
     var chipsLinea = document.getElementById('chips-linea');
-    var chipsAntelacion = document.getElementById('chips-antelacion');
     var campoAntelacion = document.getElementById('antelacion');
     var MIN_ANTELACION = 1;
     var MAX_ANTELACION = 45;
@@ -798,17 +796,6 @@
       });
 
       if (document.activeElement !== campoAntelacion) campoAntelacion.value = a.antelacion;
-
-      chipsAntelacion.textContent = '';
-      [5, 10, 15, 20].forEach(function (m) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'chip pequeno' + (a.antelacion === m ? '' : ' apagado');
-        b.textContent = m;
-        b.setAttribute('aria-label', 'Avisarme con ' + m + ' minutos');
-        b.addEventListener('click', function () { ponAntelacion(m); });
-        chipsAntelacion.appendChild(b);
-      });
 
       cajaDias.textContent = '';
       DIAS.forEach(function (d) {
