@@ -162,24 +162,35 @@
   /* ---------- panel de programacion ---------- */
   .panel {
     color: var(--azul);
-    padding: 0.2rem 0 0;
+    display: flex; flex-direction: column; gap: 0.75rem;
+    padding: 0.6rem 0 0;
     animation: despliega 260ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   @keyframes despliega {
     from { opacity: 0; transform: translateY(-8px); }
     to   { opacity: 1; transform: none; }
   }
-  .panel h3 {
-    margin: 1rem 0 0.5rem; font-size: 0.82rem; letter-spacing: 0.07em;
-    text-transform: uppercase; color: rgba(0, 100, 180, 0.65);
-  }
 
-  .interruptor {
-    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    background: var(--azul-palido); border-radius: 12px;
-    padding: 0.7rem 0.7rem 0.7rem 0.9rem; min-height: 3.4rem;
+  /* Cada forma de avisar es un bloque cerrado, con sus propios minutos */
+  .bloque {
+    display: flex; flex-direction: column; gap: 0.7rem;
+    border: 2px solid var(--azul-palido); border-radius: 14px;
+    padding: 0.85rem;
   }
-  .interruptor span { font-size: 1.05rem; }
+  .bloque.apagada { opacity: 0.62; }
+  .cabecera-bloque {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 0.9rem;
+  }
+  .cabecera-bloque .palanca { margin-top: 0.1rem; }
+  .bloque .titulo { font-size: 1.1rem; line-height: 1.1; }
+  .bloque .sub {
+    margin-top: 0.3rem; font-size: 0.8rem; line-height: 1.4;
+    color: rgba(0, 100, 180, 0.65); letter-spacing: 0.005em;
+  }
+  .rotulo {
+    font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(0, 100, 180, 0.6); margin-bottom: -0.45rem;
+  }
 
   .palanca {
     --alto: 1.9rem;
@@ -255,16 +266,15 @@
   }
   .dia .palanca { margin-left: auto; }
 
-  .separador { height: 2px; background: var(--azul-palido); margin: 1.1rem 0 0; border: 0; }
   .nota {
-    margin: 0.5rem 0 0; font-size: 0.82rem; line-height: 1.4;
+    margin: 0.7rem 0 0; font-size: 0.82rem; line-height: 1.4;
     color: rgba(0, 100, 180, 0.65);
   }
   .secundario.puntual-activo { background: var(--rojo); color: #fff; }
-  .estado { margin: 0.8rem 0 0; font-size: 0.95rem; line-height: 1.35; min-height: 1.3em; }
+  .estado { margin: 0.2rem 0 0; font-size: 0.95rem; line-height: 1.35; min-height: 1.3em; }
   .estado.error { color: var(--rojo); }
 
-  .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.9rem; }
+  .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
   .secundario, .cerrar {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
     width: 100%; padding: 0.8rem; border: 0; border-radius: 11px;
@@ -276,7 +286,7 @@
   .secundario.principal:active { background: var(--azul-oscuro); }
   .borrar {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    width: 100%; margin-top: 0.5rem; padding: 0.7rem;
+    width: 100%; margin-top: -0.2rem; padding: 0.7rem;
     border: 0; border-radius: 11px; background: transparent;
     color: var(--rojo); font-size: 0.92rem; letter-spacing: 0.06em; text-transform: uppercase;
     transition: background 120ms ease;
@@ -468,8 +478,11 @@
 
     function programaDe(clave) {
       var p = programados()[clave];
-      if (p && p.dias) return p;
-      return { activo: false, antelacion: 10, dias: { '1': '06:30', '2': '06:30', '3': '06:30', '4': '06:30', '5': '06:30' } };
+      if (!p || !p.dias) {
+        p = { activo: false, antelacion: 10, dias: { '1': '06:30', '2': '06:30', '3': '06:30', '4': '06:30', '5': '06:30' } };
+      }
+      if (typeof p.antelacionPuntual !== 'number') p.antelacionPuntual = 10;
+      return p;
     }
     function guardaPrograma(clave, prog) {
       var todos = programados();
@@ -788,32 +801,53 @@
       var panel = document.createElement('div');
       panel.className = 'panel';
       panel.innerHTML =
-        '<h3>Avisarme cuando al bus le falten</h3>' +
-        '<div class="contador">' +
-          '<button class="paso menos" type="button" aria-label="Un minuto menos">−</button>' +
-          '<div class="cifra"><input class="minutos" type="number" inputmode="numeric" min="1" max="45" step="1" aria-label="Minutos de antelación"><span>min</span></div>' +
-          '<button class="paso mas" type="button" aria-label="Un minuto más">+</button>' +
+        // Bloque 1: un aviso suelto para el bus que viene ahora
+        '<div class="bloque bloque-puntual">' +
+          '<div class="cabecera-bloque"><div>' +
+            '<div class="titulo">Solo este bus</div>' +
+            '<div class="sub">Para el que viene ahora. Un único aviso y se apaga. No hay que elegir día ni hora.</div>' +
+          '</div></div>' +
+          '<div class="rotulo">Avisarme cuando le falten</div>' +
+          '<div class="contador">' +
+            '<button class="paso menos-p" type="button" aria-label="Un minuto menos">−</button>' +
+            '<div class="cifra"><input class="min-p" type="number" inputmode="numeric" min="1" max="45" step="1" aria-label="Minutos de antelación del aviso puntual"><span>min</span></div>' +
+            '<button class="paso mas-p" type="button" aria-label="Un minuto más">+</button>' +
+          '</div>' +
+          '<button class="secundario principal puntual" type="button"></button>' +
         '</div>' +
-        '<h3>Solo por esta vez</h3>' +
-        '<button class="secundario principal puntual" type="button"></button>' +
-        '<p class="nota puntual-nota"></p>' +
-        '<hr class="separador">' +
-        '<h3>Todas las semanas</h3>' +
-        '<label class="interruptor"><span>Repetir estos días</span><span class="palanca"><input type="checkbox" class="activo"><i></i></span></label>' +
-        '<div class="dias"></div>' +
+        // Bloque 2: la rutina de cada semana
+        '<div class="bloque bloque-semanal">' +
+          '<div class="cabecera-bloque">' +
+            '<div>' +
+              '<div class="titulo">Cada semana</div>' +
+              '<div class="sub">Se repite solo, los días y a la hora a la que sueles cogerlo.</div>' +
+            '</div>' +
+            '<span class="palanca"><input type="checkbox" class="activo"><i></i></span>' +
+          '</div>' +
+          '<div class="rotulo">Avisarme cuando le falten</div>' +
+          '<div class="contador">' +
+            '<button class="paso menos-s" type="button" aria-label="Un minuto menos">−</button>' +
+            '<div class="cifra"><input class="min-s" type="number" inputmode="numeric" min="1" max="45" step="1" aria-label="Minutos de antelación del aviso semanal"><span>min</span></div>' +
+            '<button class="paso mas-s" type="button" aria-label="Un minuto más">+</button>' +
+          '</div>' +
+          '<div class="rotulo">Días y hora a la que lo coges</div>' +
+          '<div class="dias"></div>' +
+        '</div>' +
         '<p class="estado"></p>' +
         '<div class="fila-botones">' +
           '<button class="secundario probar" type="button">Probar</button>' +
           '<button class="secundario principal guardar" type="button">Guardar</button>' +
         '</div>' +
-        '<button class="borrar" type="button">Borrar la programación</button>';
+        '<button class="borrar" type="button">Borrar los avisos de esta línea</button>';
 
       cajaPanel.textContent = '';
       cajaPanel.appendChild(panel);
 
-      var campoMin = panel.querySelector('.minutos');
+      var bloquePuntual = panel.querySelector('.bloque-puntual');
+      var bloqueSemanal = panel.querySelector('.bloque-semanal');
+      var minP = panel.querySelector('.min-p');
+      var minS = panel.querySelector('.min-s');
       var botonPuntual = panel.querySelector('.puntual');
-      var notaPuntual = panel.querySelector('.puntual-nota');
       var activo = panel.querySelector('.activo');
       var cajaDias = panel.querySelector('.dias');
       var estado = panel.querySelector('.estado');
@@ -823,28 +857,40 @@
         estado.textContent = texto;
         estado.classList.toggle('error', !!esError);
       }
-
-      function ponMinutos(m) {
+      function acota(m, pordefecto) {
         var n = parseInt(m, 10);
-        if (isNaN(n)) n = 10;
-        n = Math.min(MAX_ANTELACION, Math.max(MIN_ANTELACION, n));
+        if (isNaN(n)) n = pordefecto;
+        return Math.min(MAX_ANTELACION, Math.max(MIN_ANTELACION, n));
+      }
+      function ponMinPuntual(m) {
         var prog = programaDe(clave);
-        prog.antelacion = n;
+        prog.antelacionPuntual = acota(m, 10);
         guardaPrograma(clave, prog);
-        campoMin.value = n;
-        return n;
+        minP.value = prog.antelacionPuntual;
+        return prog.antelacionPuntual;
+      }
+      function ponMinSemanal(m) {
+        var prog = programaDe(clave);
+        prog.antelacion = acota(m, 10);
+        guardaPrograma(clave, prog);
+        minS.value = prog.antelacion;
+        return prog.antelacion;
       }
 
       function pintaPuntual() {
         var u = puntualDe(clave);
         if (u) {
-          botonPuntual.textContent = 'Cancelar el aviso de ' + u.antelacion + ' min';
+          botonPuntual.textContent = 'Cancelar este aviso';
           botonPuntual.classList.add('puntual-activo');
-          notaPuntual.textContent = 'Vigilando este bus. Te aviso en cuanto le falten ' + u.antelacion + ' min y luego se apaga solo.';
+          minP.value = u.antelacion;
+          bloquePuntual.querySelector('.sub').textContent =
+            'Vigilando el próximo ' + t.info.linea + '. Te aviso cuando le falten ' + u.antelacion + ' min y luego se apaga.';
         } else {
           botonPuntual.textContent = 'Avisarme con este bus';
           botonPuntual.classList.remove('puntual-activo');
-          notaPuntual.textContent = 'Un solo aviso, para ahora mismo. No hace falta elegir hora.';
+          minP.value = programaDe(clave).antelacionPuntual;
+          bloquePuntual.querySelector('.sub').textContent =
+            'Para el que viene ahora. Un único aviso y se apaga. No hay que elegir día ni hora.';
         }
         trasCambio(t);
       }
@@ -852,6 +898,8 @@
       function pintaDias() {
         var prog = programaDe(clave);
         activo.checked = !!prog.activo;
+        bloqueSemanal.classList.toggle('apagada', !prog.activo);
+        minS.value = prog.antelacion;
         cajaDias.textContent = '';
         DIAS.forEach(function (d) {
           var hora = prog.dias[String(d.n)] || null;
@@ -878,16 +926,16 @@
           marca.appendChild(document.createElement('i'));
 
           chk.addEventListener('change', function () {
-            var p = programaDe(clave);
-            if (chk.checked) p.dias[String(d.n)] = reloj.value || '06:30';
-            else delete p.dias[String(d.n)];
-            guardaPrograma(clave, p);
+            var pr = programaDe(clave);
+            if (chk.checked) pr.dias[String(d.n)] = reloj.value || '06:30';
+            else delete pr.dias[String(d.n)];
+            guardaPrograma(clave, pr);
             pintaDias();
           });
           reloj.addEventListener('change', function () {
-            var p = programaDe(clave);
-            p.dias[String(d.n)] = reloj.value;
-            guardaPrograma(clave, p);
+            var pr = programaDe(clave);
+            pr.dias[String(d.n)] = reloj.value;
+            guardaPrograma(clave, pr);
             trasCambio(t);
           });
 
@@ -899,29 +947,29 @@
         trasCambio(t);
       }
 
-      campoMin.value = programaDe(clave).antelacion;
       pintaPuntual();
       pintaDias();
 
-      panel.querySelector('.menos').addEventListener('click', function () {
-        ponMinutos(programaDe(clave).antelacion - 1);
-      });
-      panel.querySelector('.mas').addEventListener('click', function () {
-        ponMinutos(programaDe(clave).antelacion + 1);
-      });
-      campoMin.addEventListener('change', function () { ponMinutos(campoMin.value); });
-      campoMin.addEventListener('blur', function () { campoMin.value = programaDe(clave).antelacion; });
+      panel.querySelector('.menos-p').addEventListener('click', function () { ponMinPuntual(programaDe(clave).antelacionPuntual - 1); });
+      panel.querySelector('.mas-p').addEventListener('click', function () { ponMinPuntual(programaDe(clave).antelacionPuntual + 1); });
+      minP.addEventListener('change', function () { ponMinPuntual(minP.value); });
+      minP.addEventListener('blur', function () { if (!puntualDe(clave)) minP.value = programaDe(clave).antelacionPuntual; });
 
-      // --- aviso puntual ---
+      panel.querySelector('.menos-s').addEventListener('click', function () { ponMinSemanal(programaDe(clave).antelacion - 1); });
+      panel.querySelector('.mas-s').addEventListener('click', function () { ponMinSemanal(programaDe(clave).antelacion + 1); });
+      minS.addEventListener('change', function () { ponMinSemanal(minS.value); });
+      minS.addEventListener('blur', function () { minS.value = programaDe(clave).antelacion; });
+
+      // --- aviso de una sola vez ---
       botonPuntual.addEventListener('click', function () {
         if (puntualDe(clave)) {
           borraPuntual(clave);
           pintaPuntual();
-          di('Aviso puntual cancelado.', false);
+          di('Aviso cancelado.', false);
           sincronizar().catch(function () {});
           return;
         }
-        var n = ponMinutos(campoMin.value);
+        var n = ponMinPuntual(minP.value);
         di('Preparando el aviso…', false);
         asegurarAlta().then(function (s) {
           guardaPuntual(clave, { antelacion: n, caduca: Date.now() + 2 * 3600 * 1000 });
@@ -937,11 +985,12 @@
         });
       });
 
-      // --- programacion semanal ---
+      // --- rutina semanal ---
       activo.addEventListener('change', function () {
         var prog = programaDe(clave);
         prog.activo = activo.checked;
         guardaPrograma(clave, prog);
+        bloqueSemanal.classList.toggle('apagada', !prog.activo);
         trasCambio(t);
         if (!prog.activo) {
           di('Repetición apagada.', false);
@@ -953,9 +1002,10 @@
           .then(function () { di('Listo. Pulsa «Probar» para comprobarlo.', false); })
           .catch(function (e) {
             activo.checked = false;
-            var p = programaDe(clave);
-            p.activo = false;
-            guardaPrograma(clave, p);
+            var pr = programaDe(clave);
+            pr.activo = false;
+            guardaPrograma(clave, pr);
+            bloqueSemanal.classList.add('apagada');
             trasCambio(t);
             di(e && e.message ? e.message : String(e), true);
           });
@@ -993,14 +1043,14 @@
       function reponer() {
         esperando = false;
         botonBorrar.classList.remove('confirmando');
-        botonBorrar.textContent = 'Borrar la programación';
+        botonBorrar.textContent = 'Borrar los avisos de esta línea';
         clearTimeout(relojConfirmacion);
       }
       botonBorrar.addEventListener('click', function () {
         if (!esperando) {
           esperando = true;
           botonBorrar.classList.add('confirmando');
-          botonBorrar.textContent = 'Pulsa otra vez para borrarlo';
+          botonBorrar.textContent = 'Pulsa otra vez para borrarlos';
           relojConfirmacion = setTimeout(reponer, 5000);
           return;
         }
@@ -1008,9 +1058,8 @@
         borraPrograma(clave);
         borraPuntual(clave);
         activo.checked = false;
-        pintaDias();
         pintaPuntual();
-        campoMin.value = programaDe(clave).antelacion;
+        pintaDias();
         di('Borrado. Esta línea ya no te avisará.', false);
         sincronizar().catch(function () {});
       });
