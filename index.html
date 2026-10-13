@@ -1025,6 +1025,8 @@
           guardaPuntual(clave, { antelacion: n, caduca: Date.now() + 2 * 3600 * 1000 });
           return sincronizar(s);
         }).then(function () {
+          altaEnVigilante = true;
+          pintaBanner();
           pintaPuntual();
           if (ahora <= n) diP('Al próximo ya le faltan ' + ahora + ' min, así que te avisaré enseguida.', false);
           else diP('Listo. Al próximo le faltan ' + ahora + ' min; te aviso cuando queden ' + n + '.', false);
@@ -1048,7 +1050,7 @@
         }
         diS('Activando…', false);
         asegurarAlta().then(function (s) { return sincronizar(s); })
-          .then(function () { diS('Activado. Pulsa «Probar» para comprobarlo.', false); pintaBanner(); })
+          .then(function () { altaEnVigilante = true; diS('Activado. Pulsa «Probar» para comprobarlo.', false); pintaBanner(); })
           .catch(function (e) {
             // Falta el permiso, no el ajuste: guardamos igualmente la programación en el
             // vigilante para que funcione en cuanto este móvil pueda recibir avisos.
@@ -1161,12 +1163,14 @@
     // El vigilante borra el aviso puntual en cuanto salta. Aqui nos enteramos
     // de ello y quitamos el puntito, que si no se quedaba para siempre.
     var ultimaReconciliacion = 0;
+    var altaEnVigilante = null;
     function reconciliar(forzar) {
       if (!forzar && Date.now() - ultimaReconciliacion < 15000) return Promise.resolve();
       ultimaReconciliacion = Date.now();
       return fetch(window.VIGILANTE + '/registro?id=' + encodeURIComponent(miId()))
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (d) {
+          if (d) { altaEnVigilante = !!d.suscripcion; pintaBanner(); }
           if (!d || !Array.isArray(d.puntuales)) return;
           var vivos = {};
           d.puntuales.forEach(function (u) { if (u && u.clave) vivos[u.clave] = true; });
@@ -1195,21 +1199,29 @@
       suscribir().then(function (s) { return sincronizar(s); }).catch(function () {});
     }
 
+    // Siempre visible: que nunca haya que adivinar por que un aviso no se activa.
     function pintaBanner() {
+      banner.hidden = false;
       var motivo = porQueNoPuede();
       if (motivo) {
-        banner.hidden = false;
         banner.className = 'banner';
         banner.textContent = motivo;
         return;
       }
       if (Notification.permission !== 'granted') {
-        banner.hidden = false;
         banner.className = 'banner bien';
         banner.textContent = 'La primera vez que actives un aviso te pediré permiso para las notificaciones.';
         return;
       }
-      banner.hidden = true;
+      if (altaEnVigilante === false) {
+        banner.className = 'banner';
+        banner.textContent = 'Este móvil todavía no está dado de alta. Activa un aviso y se dará de alta solo.';
+        return;
+      }
+      banner.className = 'banner bien';
+      banner.textContent = altaEnVigilante
+        ? 'Este móvil está dado de alta: recibirá los avisos.'
+        : 'Comprobando si este móvil está dado de alta…';
     }
 
     // ---------- hoja de anadir ----------

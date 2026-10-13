@@ -1,5 +1,5 @@
 // Cachea la app para que abra sin cobertura, y recibe los avisos de bus.
-const CACHE = 'paradas-emt-v17';
+const CACHE = 'paradas-emt-v18';
 const SHELL = ['./', './index.html', './icono.png', './manifest.json'];
 const ESPERA_RED = 2000;
 
