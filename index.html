@@ -174,13 +174,20 @@
   .hoja {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
     background: var(--fondo); border-radius: 18px 18px 0 0;
-    padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+    padding: 0.7rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
     max-height: 88vh; overflow-y: auto;
     transform: translateY(101%);
     transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow: 0 -10px 40px rgba(0, 40, 75, 0.18);
   }
   .hoja.abierta { transform: none; }
+  .hoja.arrastrando { transition: none; }
+  .asa {
+    width: 2.6rem; height: 0.3rem; flex: none;
+    margin: 0 auto 0.8rem;
+    border-radius: 999px;
+    background: rgba(0, 100, 180, 0.3);
+  }
   .hoja h2 { margin: 0 0 0.1rem; font-size: 1.3rem; }
   .hoja p.pista {
     margin: 0 0 0.9rem; font-size: 0.85rem; line-height: 1.35;
@@ -356,6 +363,7 @@
 <div class="velo" id="velo"></div>
 
 <section class="hoja" id="hoja-anadir" role="dialog" aria-modal="true" aria-labelledby="titulo-anadir" aria-hidden="true">
+  <div class="asa" aria-hidden="true"></div>
   <h2 id="titulo-anadir">Añadir una línea</h2>
   <p class="pista">Pega el enlace de la EMT o el número de parada</p>
   <input class="campo" id="campo" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false"
@@ -370,6 +378,7 @@
 </section>
 
 <section class="hoja" id="hoja-aviso" role="dialog" aria-modal="true" aria-labelledby="titulo-aviso" aria-hidden="true">
+  <div class="asa" aria-hidden="true"></div>
   <h2 id="titulo-aviso">Avisarme antes de que llegue</h2>
   <p class="pista">Te suena el móvil cuando tu bus está cerca de verdad</p>
 
@@ -602,6 +611,8 @@
     var abierta = null;
     function abrirHoja(h) {
       abierta = h;
+      h.style.transform = '';
+      h.scrollTop = 0;
       velo.classList.add('abierto');
       h.classList.add('abierta');
       h.setAttribute('aria-hidden', 'false');
@@ -609,11 +620,63 @@
     function cerrarHoja() {
       if (!abierta) return;
       if (typeof reponerBorrar === 'function') reponerBorrar();
+      velo.style.opacity = '';
       velo.classList.remove('abierto');
       abierta.classList.remove('abierta');
       abierta.setAttribute('aria-hidden', 'true');
       abierta = null;
     }
+    // Arrastrar la hoja hacia abajo para cerrarla, cuando ya esta arriba del todo.
+    function hazArrastrable(h) {
+      var inicioY = 0, inicioX = 0, recorrido = 0, activa = false, decidido = false;
+
+      h.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1 || h.scrollTop > 0) { activa = false; return; }
+        inicioY = e.touches[0].clientY;
+        inicioX = e.touches[0].clientX;
+        recorrido = 0;
+        activa = true;
+        decidido = false;
+      }, { passive: true });
+
+      h.addEventListener('touchmove', function (e) {
+        if (!activa) return;
+        var dy = e.touches[0].clientY - inicioY;
+        var dx = e.touches[0].clientX - inicioX;
+
+        if (!decidido) {
+          // Si el dedo va hacia arriba o de lado, esto no es un cierre: lo dejamos en paz.
+          if (dy < 4 || Math.abs(dx) > Math.abs(dy)) { activa = false; return; }
+          decidido = true;
+          h.classList.add('arrastrando');
+        }
+        if (h.scrollTop > 0) return;
+
+        e.preventDefault();
+        recorrido = Math.max(0, dy);
+        h.style.transform = 'translateY(' + (recorrido * 0.9) + 'px)';
+        velo.style.opacity = String(Math.max(0, 1 - recorrido / 420));
+      }, { passive: false });
+
+      function soltar() {
+        if (!activa) return;
+        activa = false;
+        h.classList.remove('arrastrando');
+        velo.style.opacity = '';
+        if (recorrido > 90) {
+          h.style.transform = '';
+          cerrarHoja();
+        } else {
+          h.style.transform = '';
+        }
+        recorrido = 0;
+      }
+      h.addEventListener('touchend', soltar);
+      h.addEventListener('touchcancel', soltar);
+    }
+    hazArrastrable(hojaAnadir);
+    hazArrastrable(hojaAviso);
+
     velo.addEventListener('click', cerrarHoja);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarHoja(); });
     document.getElementById('cerrar-anadir').addEventListener('click', cerrarHoja);
