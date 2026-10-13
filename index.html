@@ -93,45 +93,34 @@
   }
 
   /* ---------- tarjeta de linea ---------- */
-  .tarjeta {
-    display: flex;
-    flex-direction: column;
-    border-radius: 14px;
-    overflow: hidden;
-    background: var(--azul);
-    min-height: 5.4rem;
-  }
-  .tarjeta.colapsada { flex: 1 1 0; }
-  .tarjeta.abierta { flex: none; }
-  .tarjeta.entrando { animation: entra 320ms cubic-bezier(0.22, 1, 0.36, 1); }
-  @keyframes entra {
-    from { opacity: 0; transform: translateY(14px) scale(0.98); }
-    to   { opacity: 1; transform: none; }
-  }
-
-  .cara {
-    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+  .linea {
     position: relative;
     overflow: hidden;
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 0.1em;
-    width: 100%;
     min-width: 0;
     min-height: 5.4rem;
     padding: 0.7rem 1rem;
-    border: 0;
     background: var(--azul);
+    border-radius: 14px;
     color: var(--numero);
+    text-decoration: none;
     text-align: center;
-    transition: background 120ms ease;
+    transform: translateZ(0);
+    transition: background 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .cara:active { background: var(--azul-oscuro); }
-  .cara:focus-visible { outline: 3px solid var(--numero); outline-offset: -5px; }
-  @media (hover: hover) { .cara:hover { background: var(--azul-oscuro); } }
+  .linea:active { transform: scale(0.975); background: var(--azul-oscuro); }
+  .linea:focus-visible { outline: 4px solid var(--azul-oscuro); outline-offset: 3px; }
+  @media (hover: hover) { .linea:hover { background: var(--azul-oscuro); } }
+  .linea.entrando { animation: entra 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes entra {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
 
   .numero { font-size: clamp(2.1rem, 8.5vh, 3.9rem); line-height: 1; font-variant-numeric: tabular-nums; }
   .calle {
@@ -170,24 +159,10 @@
   }
   @keyframes avanza { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 
-  /* La flechita que indica que se despliega */
-  .pico {
-    position: absolute; right: 0.85rem; top: 50%;
-    width: 0.85rem; height: 0.85rem;
-    margin-top: -0.42rem;
-    border-right: 2.5px solid var(--muy-tenue);
-    border-bottom: 2.5px solid var(--muy-tenue);
-    transform: rotate(45deg);
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-  .tarjeta.abierta .pico { transform: rotate(-135deg); }
-
   /* ---------- panel de programacion ---------- */
   .panel {
-    background: var(--fondo);
     color: var(--azul);
-    padding: 1rem 1rem 1.1rem;
-    border-top: 3px solid var(--azul-oscuro);
+    padding: 0.2rem 0 0;
     animation: despliega 260ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   @keyframes despliega {
@@ -318,14 +293,17 @@
   .enlace-emt:active { background: var(--azul-palido); }
 
   /* ---------- boton de anadir ---------- */
+  .acciones { display: grid; grid-template-columns: 1fr 3.4rem; gap: 10px; flex: none; }
   .boton-borde {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    display: grid; place-items: center; height: 3.4rem; flex: none;
+    display: grid; place-items: center; height: 3.4rem;
     border: 2px dashed rgba(0, 100, 180, 0.4); border-radius: 14px;
     background: transparent; color: var(--azul); line-height: 1;
-    font-size: 1.9rem; padding-bottom: 0.18em;
     transition: background 120ms ease, border-color 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
   }
+  .boton-borde.mas { font-size: 1.9rem; padding-bottom: 0.18em; }
+  .boton-borde.encendido { border-style: solid; border-color: var(--azul); background: var(--azul-palido); }
+  .boton-borde .icono-reloj { width: 1.45rem; height: 1.45rem; stroke-width: 2; }
   .boton-borde:active { transform: scale(0.98); background: var(--azul-palido); }
   .boton-borde:focus-visible { outline: 4px solid var(--azul); outline-offset: 3px; }
   @media (hover: hover) { .boton-borde:hover { background: var(--azul-palido); border-color: var(--azul); } }
@@ -376,6 +354,12 @@
   }
   .chip:active { transform: scale(0.96); background: var(--azul-oscuro); }
   .chip.ya { background: var(--azul-palido); color: rgba(0, 100, 180, 0.55); }
+  .chip.apagado { background: var(--azul-palido); color: rgba(0, 100, 180, 0.7); }
+  .chip.pequeno { font-size: 1.1rem; padding: 0.5rem 0.85rem; }
+  .chip .punto {
+    display: inline-block; width: 0.42rem; height: 0.42rem; border-radius: 50%;
+    background: currentColor; margin-left: 0.4rem; vertical-align: 0.12em; opacity: 0.85;
+  }
   .mias { margin-top: 1.1rem; border-top: 2px solid var(--azul-palido); padding-top: 0.8rem; }
   .mias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
   .mias li {
@@ -423,6 +407,16 @@
   <button class="cerrar" id="cerrar-anadir" type="button">Cerrar</button>
 </section>
 
+<section class="hoja" id="hoja-aviso" role="dialog" aria-modal="true" aria-labelledby="titulo-aviso" aria-hidden="true">
+  <div class="asa" aria-hidden="true"></div>
+  <h2 id="titulo-aviso">Avisarme antes de que llegue</h2>
+  <p class="pista">Elige la línea que quieres vigilar</p>
+  <div class="chips" id="chips-linea"></div>
+  <p class="nota" id="pista-linea">Toca una línea para programarla.</p>
+  <div id="caja-panel"></div>
+  <button class="cerrar" id="cerrar-aviso" type="button">Cerrar</button>
+</section>
+
 <script>
   (function () {
     var LLAVE_EXTRAS = 'paradas-emt:extras';
@@ -448,8 +442,13 @@
     var cajaMias = document.getElementById('mias');
     var listaMias = document.getElementById('lista-mias');
 
+    var hojaAviso = document.getElementById('hoja-aviso');
+    var chipsLinea = document.getElementById('chips-linea');
+    var cajaPanel = document.getElementById('caja-panel');
+    var pistaLinea = document.getElementById('pista-linea');
+
     var tarjetas = [];
-    var abiertaClave = null;
+    var elegida = null;
     var ultima = 0;
 
     // ---------- almacen ----------
@@ -673,7 +672,13 @@
       }).catch(function () { falla(t); });
     }
 
+    function refrescaBotonReloj() {
+      var b = columna.querySelector('.boton-borde.reloj');
+      if (b) b.classList.toggle('encendido', hayAlgunAviso());
+    }
+
     function pintaMarca(t) {
+      if (!t || !t.cara) return;
       var caja = t.cara.querySelector('.calle');
       var vieja = caja.querySelector('.programado');
       if (vieja) vieja.remove();
@@ -696,6 +701,13 @@
       caja.appendChild(marca);
     }
 
+    // Cualquier cambio en los avisos se refleja en los tres sitios a la vez.
+    function trasCambio(t) {
+      pintaMarca(t);
+      refrescaBotonReloj();
+      if (typeof pintaChips === 'function') pintaChips();
+    }
+
     function render(nuevaClave) {
       var lista = todas();
       columna.textContent = '';
@@ -704,41 +716,42 @@
       var frag = document.createDocumentFragment();
       lista.forEach(function (p) {
         var clave = claveDe(p);
-        var tarjeta = document.createElement('div');
-        tarjeta.className = 'tarjeta ' + (abiertaClave === clave ? 'abierta' : 'colapsada');
-        if (nuevaClave && clave === nuevaClave) tarjeta.classList.add('entrando');
-
-        var cara = document.createElement('button');
-        cara.type = 'button';
-        cara.className = 'cara cargando';
-        cara.setAttribute('aria-expanded', abiertaClave === clave ? 'true' : 'false');
-        cara.innerHTML =
+        var el = document.createElement('a');
+        el.className = 'linea cargando';
+        if (nuevaClave && clave === nuevaClave) el.classList.add('entrando');
+        el.href = window.URL_PARADA(p.parada);
+        el.target = '_blank';
+        el.rel = 'noopener';
+        el.innerHTML =
           '<span class="numero"></span>' +
           '<span class="calle"><span class="texto-calle"></span></span>' +
-          '<span class="tiempos"></span>' +
-          '<span class="pico" aria-hidden="true"></span>';
-        cara.querySelector('.numero').textContent = p.linea;
-        cara.querySelector('.texto-calle').textContent = p.calle;
+          '<span class="tiempos"></span>';
+        el.querySelector('.numero').textContent = p.linea;
+        el.querySelector('.texto-calle').textContent = p.calle;
 
-        var t = {
-          info: p, clave: clave, tarjeta: tarjeta, cara: cara,
-          tiempos: cara.querySelector('.tiempos'), panel: null, ultimosTiempos: null
-        };
-        cara.addEventListener('click', function () { alterna(t); });
-        tarjeta.appendChild(cara);
-        frag.appendChild(tarjeta);
+        var t = { info: p, clave: clave, cara: el, tiempos: el.querySelector('.tiempos'), ultimosTiempos: null };
+        frag.appendChild(el);
         tarjetas.push(t);
         pintaMarca(t);
-        if (abiertaClave === clave) montaPanel(t);
       });
 
+      var acciones = document.createElement('div');
+      acciones.className = 'acciones';
       var mas = document.createElement('button');
-      mas.className = 'boton-borde';
+      mas.className = 'boton-borde mas';
       mas.type = 'button';
       mas.setAttribute('aria-label', 'Añadir una línea');
       mas.textContent = '+';
       mas.addEventListener('click', abrirAnadir);
-      frag.appendChild(mas);
+      var reloj = document.createElement('button');
+      reloj.className = 'boton-borde reloj' + (hayAlgunAviso() ? ' encendido' : '');
+      reloj.type = 'button';
+      reloj.setAttribute('aria-label', 'Programar un aviso');
+      reloj.innerHTML = ICONO_RELOJ;
+      reloj.addEventListener('click', abrirAviso);
+      acciones.appendChild(mas);
+      acciones.appendChild(reloj);
+      frag.appendChild(acciones);
       columna.appendChild(frag);
 
       ultima = Date.now();
@@ -749,6 +762,18 @@
       window.PRECARGA = {};
     }
 
+    function hayAlgunAviso() {
+      var prog = programados();
+      var pun = puntuales();
+      var hay = false;
+      todas().forEach(function (p) {
+        var c = claveDe(p);
+        if (prog[c] && prog[c].activo) hay = true;
+        if (pun[c] && (!pun[c].caduca || Date.now() < pun[c].caduca)) hay = true;
+      });
+      return hay;
+    }
+
     function refrescar() {
       ultima = Date.now();
       tarjetas.forEach(function (t) {
@@ -757,34 +782,8 @@
       });
     }
 
-    function alterna(t) {
-      if (abiertaClave === t.clave) {
-        abiertaClave = null;
-        if (t.panel) { t.panel.remove(); t.panel = null; }
-        t.tarjeta.classList.remove('abierta');
-        t.tarjeta.classList.add('colapsada');
-        t.cara.setAttribute('aria-expanded', 'false');
-        return;
-      }
-      tarjetas.forEach(function (otra) {
-        if (otra.panel) { otra.panel.remove(); otra.panel = null; }
-        otra.tarjeta.classList.remove('abierta');
-        otra.tarjeta.classList.add('colapsada');
-        otra.cara.setAttribute('aria-expanded', 'false');
-      });
-      abiertaClave = t.clave;
-      t.tarjeta.classList.remove('colapsada');
-      t.tarjeta.classList.add('abierta');
-      t.cara.setAttribute('aria-expanded', 'true');
-      montaPanel(t);
-      setTimeout(function () {
-        t.tarjeta.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 60);
-    }
-
     // ---------- panel de cada linea ----------
     function montaPanel(t) {
-      if (t.panel) return;
       var clave = t.clave;
       var panel = document.createElement('div');
       panel.className = 'panel';
@@ -807,11 +806,10 @@
           '<button class="secundario probar" type="button">Probar</button>' +
           '<button class="secundario principal guardar" type="button">Guardar</button>' +
         '</div>' +
-        '<button class="borrar" type="button">Borrar la programación</button>' +
-        '<a class="enlace-emt" target="_blank" rel="noopener">Ver el panel de la EMT</a>';
+        '<button class="borrar" type="button">Borrar la programación</button>';
 
-      t.tarjeta.appendChild(panel);
-      t.panel = panel;
+      cajaPanel.textContent = '';
+      cajaPanel.appendChild(panel);
 
       var campoMin = panel.querySelector('.minutos');
       var botonPuntual = panel.querySelector('.puntual');
@@ -820,7 +818,6 @@
       var cajaDias = panel.querySelector('.dias');
       var estado = panel.querySelector('.estado');
       var botonBorrar = panel.querySelector('.borrar');
-      panel.querySelector('.enlace-emt').href = window.URL_PARADA(t.info.parada);
 
       function di(texto, esError) {
         estado.textContent = texto;
@@ -849,7 +846,7 @@
           botonPuntual.classList.remove('puntual-activo');
           notaPuntual.textContent = 'Un solo aviso, para ahora mismo. No hace falta elegir hora.';
         }
-        pintaMarca(t);
+        trasCambio(t);
       }
 
       function pintaDias() {
@@ -891,7 +888,7 @@
             var p = programaDe(clave);
             p.dias[String(d.n)] = reloj.value;
             guardaPrograma(clave, p);
-            pintaMarca(t);
+            trasCambio(t);
           });
 
           fila.appendChild(nombre);
@@ -899,7 +896,7 @@
           fila.appendChild(marca);
           cajaDias.appendChild(fila);
         });
-        pintaMarca(t);
+        trasCambio(t);
       }
 
       campoMin.value = programaDe(clave).antelacion;
@@ -945,7 +942,7 @@
         var prog = programaDe(clave);
         prog.activo = activo.checked;
         guardaPrograma(clave, prog);
-        pintaMarca(t);
+        trasCambio(t);
         if (!prog.activo) {
           di('Repetición apagada.', false);
           sincronizar().catch(function () {});
@@ -959,7 +956,7 @@
             var p = programaDe(clave);
             p.activo = false;
             guardaPrograma(clave, p);
-            pintaMarca(t);
+            trasCambio(t);
             di(e && e.message ? e.message : String(e), true);
           });
       });
@@ -970,7 +967,7 @@
         var haceFalta = prog.activo || !!puntualDe(clave);
         var paso = haceFalta ? asegurarAlta() : Promise.resolve(null);
         paso.then(function (s) { return sincronizar(s); })
-          .then(function () { di('Guardado.', false); pintaMarca(t); })
+          .then(function () { di('Guardado.', false); trasCambio(t); })
           .catch(function (e) { di('No he podido guardar: ' + (e && e.message ? e.message : e), true); });
       });
 
@@ -1017,6 +1014,50 @@
         di('Borrado. Esta línea ya no te avisará.', false);
         sincronizar().catch(function () {});
       });
+    }
+
+    // ---------- hoja del reloj ----------
+    function tarjetaDe(clave) {
+      for (var i = 0; i < tarjetas.length; i++) if (tarjetas[i].clave === clave) return tarjetas[i];
+      return null;
+    }
+
+    function pintaChips() {
+      var prog = programados();
+      var pun = puntuales();
+      chipsLinea.textContent = '';
+      todas().forEach(function (p) {
+        var clave = claveDe(p);
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip pequeno' + (elegida === clave ? '' : ' apagado');
+        b.appendChild(document.createTextNode(p.linea));
+        var tieneAviso = (prog[clave] && prog[clave].activo) ||
+          (pun[clave] && (!pun[clave].caduca || Date.now() < pun[clave].caduca));
+        if (tieneAviso) {
+          var punto = document.createElement('span');
+          punto.className = 'punto';
+          b.appendChild(punto);
+        }
+        b.setAttribute('aria-pressed', elegida === clave ? 'true' : 'false');
+        b.setAttribute('aria-label', 'Programar la línea ' + p.linea + ' en ' + p.calle +
+          (tieneAviso ? ', ya tiene aviso' : ''));
+        b.addEventListener('click', function () {
+          if (elegida === clave) { elegida = null; cajaPanel.textContent = ''; }
+          else { elegida = clave; var t = tarjetaDe(clave); if (t) montaPanel(t); }
+          pistaLinea.hidden = !!elegida;
+          pintaChips();
+        });
+        chipsLinea.appendChild(b);
+      });
+    }
+
+    function abrirAviso() {
+      if (!elegida) cajaPanel.textContent = '';
+      pistaLinea.hidden = !!elegida;
+      pintaChips();
+      if (elegida) { var t = tarjetaDe(elegida); if (t) montaPanel(t); }
+      abrirHoja(hojaAviso);
     }
 
     // ---------- hoja de anadir ----------
@@ -1074,10 +1115,12 @@
       h.addEventListener('touchcancel', soltar);
     }
     hazArrastrable(hojaAnadir);
+    hazArrastrable(hojaAviso);
 
     velo.addEventListener('click', cerrarHoja);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarHoja(); });
     document.getElementById('cerrar-anadir').addEventListener('click', cerrarHoja);
+    document.getElementById('cerrar-aviso').addEventListener('click', cerrarHoja);
 
     var buscadas = {};
     var ultimoTexto = '';
@@ -1170,7 +1213,7 @@
           if (fuera) {
             borraPrograma(claveDe(fuera));
             borraPuntual(claveDe(fuera));
-            if (abiertaClave === claveDe(fuera)) abiertaClave = null;
+            if (elegida === claveDe(fuera)) { elegida = null; cajaPanel.textContent = ''; }
           }
           pintaMias();
           render();
