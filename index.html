@@ -279,20 +279,54 @@
 
   .dias { display: flex; flex-direction: column; gap: 0.45rem; }
   .dia {
-    display: flex; align-items: center; gap: 0.75rem;
+    display: flex; align-items: flex-start; gap: 0.7rem;
     background: var(--azul-palido); border-radius: 10px;
-    padding: 0.45rem 0.7rem; min-height: 3rem;
+    padding: 0.5rem 0.6rem; min-height: 3rem;
   }
-  .dia .nombre { width: 2.5rem; flex: none; font-size: 1.05rem; letter-spacing: 0.04em; }
-  .dia.apagado .nombre, .dia.apagado input[type="time"] { opacity: 0.45; }
-  .dia input[type="time"] {
+  .dia .nombre {
+    width: 2.5rem; flex: none; font-size: 1.05rem; letter-spacing: 0.04em;
+    padding-top: 0.5rem;
+  }
+  .dia.apagado .nombre { opacity: 0.45; }
+  .horas { display: flex; flex-wrap: wrap; gap: 0.4rem; flex: 1; min-width: 0; }
+  .hora {
+    display: flex; align-items: center;
+    background: var(--fondo); border: 2px solid rgba(0, 100, 180, 0.25); border-radius: 9px;
+  }
+  .hora input[type="time"] {
     font: inherit; font-size: 16px; font-weight: 700; color: var(--azul);
-    background: var(--fondo); border: 2px solid rgba(0, 100, 180, 0.25);
-    border-radius: 9px; padding: 0.35rem 0.5rem;
-    width: 6.4rem; flex: none; text-align: center;
-    font-variant-numeric: tabular-nums;
+    background: transparent; border: 0; border-radius: 9px;
+    padding: 0.35rem 0.1rem 0.35rem 0.55rem;
+    width: 5rem; text-align: center; font-variant-numeric: tabular-nums;
   }
-  .dia .palanca { margin-left: auto; }
+  .hora input[type="time"]:focus { outline: none; }
+  .hora .sep { width: 2px; height: 1.15rem; flex: none; background: rgba(0, 100, 180, 0.16); }
+  .hora .mins {
+    font: inherit; font-size: 16px; font-weight: 700; color: var(--azul);
+    background: transparent; border: 0; width: 2.2rem; text-align: center;
+    padding: 0.35rem 0; font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+  }
+  .hora .mins::-webkit-outer-spin-button,
+  .hora .mins::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .hora .mins:focus { outline: none; }
+  .hora .min-etiqueta {
+    font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: rgba(0, 100, 180, 0.5); padding-right: 0.15rem;
+  }
+  .quitar-hora {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    border: 0; background: transparent; color: rgba(0, 100, 180, 0.55);
+    font-size: 0.95rem; line-height: 1; padding: 0.5rem 0.5rem 0.5rem 0.3rem;
+    border-radius: 0 7px 7px 0;
+  }
+  .quitar-hora:active { background: rgba(0, 100, 180, 0.12); }
+  .mas-hora {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    border: 2px dashed rgba(0, 100, 180, 0.35); background: transparent;
+    color: var(--azul); border-radius: 9px;
+    padding: 0.35rem 0.75rem; font-size: 0.92rem; line-height: 1.5;
+  }
+  .mas-hora:active { background: rgba(0, 100, 180, 0.1); }
 
   .nota {
     margin: 0.7rem 0 0; font-size: 0.82rem; line-height: 1.4;
@@ -352,17 +386,18 @@
     opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index: 10;
   }
   .velo.abierto { opacity: 1; pointer-events: auto; }
+  .velo.arrastrando { transition: none; }
   .hoja {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
     background: var(--fondo); border-radius: 18px 18px 0 0;
     padding: 0.7rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
     max-height: 88vh; overflow-y: auto;
-    transform: translateY(101%);
-    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translate3d(0, 101%, 0);
+    transition: transform 320ms cubic-bezier(0.32, 0.72, 0, 1);
     box-shadow: 0 -10px 40px rgba(0, 40, 75, 0.18);
   }
   .hoja.abierta { transform: none; }
-  .hoja.arrastrando { transition: none; }
+  .hoja.arrastrando { transition: none; will-change: transform; }
   .asa {
     width: 2.6rem; height: 0.3rem; margin: 0 auto 0.8rem;
     border-radius: 999px; background: rgba(0, 100, 180, 0.3);
@@ -514,14 +549,42 @@
     }
     function guardaLineas(v) { escribeLS(LLAVE_LINEAS, v); }
     function claveDe(p) { return p.linea + '@' + p.parada; }
+    function aMinutosDelDia(hhmm) {
+      var m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || '').trim());
+      return m ? (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : 390;
+    }
+    function aHoraTexto(min) {
+      var v = ((min % 1440) + 1440) % 1440;
+      return String(Math.floor(v / 60)).padStart(2, '0') + ':' + String(v % 60).padStart(2, '0');
+    }
 
     function programados() { return leeLS(LLAVE_PROG, {}) || {}; }
     function puntuales() { return leeLS(LLAVE_PUNT, {}) || {}; }
 
+    // "06:30" | ["06:30", ...] | [{h, m}, ...]  ->  [{h, m}]
+    function normalizaHoras(v) {
+      if (v == null) return [];
+      var lista = Array.isArray(v) ? v : [v];
+      var vistas = {};
+      var salida = [];
+      lista.forEach(function (x) {
+        var h = null, m = null;
+        if (typeof x === 'string') h = x;
+        else if (x && typeof x.h === 'string') {
+          h = x.h;
+          m = (typeof x.m === 'number' && x.m > 0) ? x.m : null;
+        }
+        if (!h || vistas[h]) return;
+        vistas[h] = true;
+        salida.push({ h: h, m: m });
+      });
+      return salida;
+    }
+
     function programaDe(clave) {
       var p = programados()[clave];
       if (!p || !p.dias) {
-        p = { activo: false, antelacion: 10, dias: { '1': '06:30', '2': '06:30', '3': '06:30', '4': '06:30', '5': '06:30' } };
+        p = { activo: false, antelacion: 10, dias: { '1': [{ h: '06:30', m: null }], '2': [{ h: '06:30', m: null }], '3': [{ h: '06:30', m: null }], '4': [{ h: '06:30', m: null }], '5': [{ h: '06:30', m: null }] } };
       }
       if (typeof p.antelacionPuntual !== 'number') p.antelacionPuntual = 10;
       return p;
@@ -749,9 +812,10 @@
         marca.appendChild(document.createTextNode(punt.antelacion + ' min'));
         marca.setAttribute('aria-label', 'Aviso puntual con ' + punt.antelacion + ' minutos');
       } else {
-        var hoy = prog.dias[String(new Date().getDay())] || null;
+        var deHoy = normalizaHoras(prog.dias[String(new Date().getDay())]);
+        var hoy = deHoy.length ? deHoy.map(function (f) { return f.h; }).sort().join(' · ') : null;
         if (hoy) marca.appendChild(document.createTextNode(hoy));
-        marca.setAttribute('aria-label', hoy ? 'Aviso programado hoy a las ' + hoy : 'Aviso programado');
+        marca.setAttribute('aria-label', hoy ? 'Avisos programados hoy a las ' + hoy : 'Aviso programado');
       }
       caja.appendChild(marca);
     }
@@ -941,53 +1005,111 @@
         trasCambio(t);
       }
 
+      function guardaFranjas(dn, franjas) {
+        var pr = programaDe(clave);
+        if (franjas.length) pr.dias[String(dn)] = franjas;
+        else delete pr.dias[String(dn)];
+        guardaPrograma(clave, pr);
+      }
+
       function pintaDias() {
         var prog = programaDe(clave);
         activo.checked = !!prog.activo;
         bloqueSemanal.classList.toggle('apagada', !prog.activo);
         minS.value = prog.antelacion;
         cajaDias.textContent = '';
+
         DIAS.forEach(function (d) {
-          var hora = prog.dias[String(d.n)] || null;
+          var franjas = normalizaHoras(prog.dias[String(d.n)]);
           var fila = document.createElement('div');
-          fila.className = 'dia' + (hora ? '' : ' apagado');
+          fila.className = 'dia' + (franjas.length ? '' : ' apagado');
 
           var nombre = document.createElement('span');
           nombre.className = 'nombre';
           nombre.textContent = d.nombre;
+          fila.appendChild(nombre);
 
-          var reloj = document.createElement('input');
-          reloj.type = 'time';
-          reloj.value = hora || '06:30';
-          reloj.disabled = !hora;
-          reloj.setAttribute('aria-label', 'Hora del ' + d.nombre);
+          var cajaHoras = document.createElement('div');
+          cajaHoras.className = 'horas';
 
-          var marca = document.createElement('label');
-          marca.className = 'palanca pequena';
-          var chk = document.createElement('input');
-          chk.type = 'checkbox';
-          chk.checked = !!hora;
-          chk.setAttribute('aria-label', d.nombre);
-          marca.appendChild(chk);
-          marca.appendChild(document.createElement('i'));
+          franjas.forEach(function (f, idx) {
+            var pastilla = document.createElement('span');
+            pastilla.className = 'hora';
 
-          chk.addEventListener('change', function () {
-            var pr = programaDe(clave);
-            if (chk.checked) pr.dias[String(d.n)] = reloj.value || '06:30';
-            else delete pr.dias[String(d.n)];
-            guardaPrograma(clave, pr);
-            pintaDias();
+            var reloj = document.createElement('input');
+            reloj.type = 'time';
+            reloj.value = f.h;
+            reloj.setAttribute('aria-label', 'Hora del ' + d.nombre);
+            reloj.addEventListener('change', function () {
+              if (!reloj.value) { reloj.value = f.h; return; }
+              var lista = normalizaHoras(programaDe(clave).dias[String(d.n)]);
+              lista[idx] = { h: reloj.value, m: lista[idx] ? lista[idx].m : null };
+              guardaFranjas(d.n, lista);
+              pintaDias();
+            });
+
+            var sep = document.createElement('span');
+            sep.className = 'sep';
+
+            var mins = document.createElement('input');
+            mins.type = 'number';
+            mins.className = 'mins';
+            mins.min = String(MIN_ANTELACION);
+            mins.max = String(MAX_ANTELACION);
+            mins.inputMode = 'numeric';
+            mins.value = f.m != null ? f.m : prog.antelacion;
+            mins.setAttribute('aria-label', 'Minutos de aviso de las ' + f.h + ' del ' + d.nombre);
+            mins.addEventListener('change', function () {
+              var n = acota(mins.value, prog.antelacion);
+              var lista = normalizaHoras(programaDe(clave).dias[String(d.n)]);
+              if (lista[idx]) lista[idx].m = n;
+              guardaFranjas(d.n, lista);
+              pintaDias();
+              trasCambio(t);
+            });
+
+            var etq = document.createElement('span');
+            etq.className = 'min-etiqueta';
+            etq.textContent = 'min';
+
+            var quitar = document.createElement('button');
+            quitar.type = 'button';
+            quitar.className = 'quitar-hora';
+            quitar.textContent = '✕';
+            quitar.setAttribute('aria-label', 'Quitar las ' + f.h + ' del ' + d.nombre);
+            quitar.addEventListener('click', function () {
+              var lista = normalizaHoras(programaDe(clave).dias[String(d.n)]);
+              lista.splice(idx, 1);
+              guardaFranjas(d.n, lista);
+              pintaDias();
+              trasCambio(t);
+            });
+
+            pastilla.appendChild(reloj);
+            pastilla.appendChild(sep);
+            pastilla.appendChild(mins);
+            pastilla.appendChild(etq);
+            pastilla.appendChild(quitar);
+            cajaHoras.appendChild(pastilla);
           });
-          reloj.addEventListener('change', function () {
-            var pr = programaDe(clave);
-            pr.dias[String(d.n)] = reloj.value;
-            guardaPrograma(clave, pr);
+
+          var mas = document.createElement('button');
+          mas.type = 'button';
+          mas.className = 'mas-hora';
+          mas.textContent = franjas.length ? '+' : '+ hora';
+          mas.setAttribute('aria-label', 'Añadir otra hora el ' + d.nombre);
+          mas.addEventListener('click', function () {
+            var lista = normalizaHoras(programaDe(clave).dias[String(d.n)]);
+            // La nueva sale una hora despues de la ultima, para no repetir la misma.
+            var base = lista.length ? aMinutosDelDia(lista[lista.length - 1].h) + 60 : 390;
+            lista.push({ h: aHoraTexto(base), m: null });
+            guardaFranjas(d.n, lista);
+            pintaDias();
             trasCambio(t);
           });
+          cajaHoras.appendChild(mas);
 
-          fila.appendChild(nombre);
-          fila.appendChild(reloj);
-          fila.appendChild(marca);
+          fila.appendChild(cajaHoras);
           cajaDias.appendChild(fila);
         });
         trasCambio(t);
@@ -1214,15 +1336,7 @@
         banner.textContent = 'La primera vez que actives un aviso te pediré permiso para las notificaciones.';
         return;
       }
-      if (altaEnVigilante === false) {
-        banner.className = 'banner';
-        banner.textContent = 'Este móvil todavía no está dado de alta. Activa un aviso y se dará de alta solo.';
-        return;
-      }
-      banner.className = 'banner bien';
-      banner.textContent = altaEnVigilante
-        ? 'Este móvil está dado de alta: recibirá los avisos.'
-        : 'Comprobando si este móvil está dado de alta…';
+      banner.hidden = true;
     }
 
     // ---------- hoja de anadir ----------
@@ -1246,39 +1360,88 @@
 
     function hazArrastrable(h) {
       var inicioY = 0, inicioX = 0, recorrido = 0, activa = false, decidido = false;
+      var arranque = 0, ultimaY = 0, ultimoT = 0, velocidad = 0, pendiente = null;
+
+      function dibuja() {
+        pendiente = null;
+        h.style.transform = 'translate3d(0,' + recorrido + 'px,0)';
+        velo.style.opacity = String(Math.max(0, 1 - recorrido / 420));
+      }
+
       h.addEventListener('touchstart', function (e) {
         if (e.touches.length !== 1 || h.scrollTop > 0) { activa = false; return; }
-        inicioY = e.touches[0].clientY;
+        inicioY = ultimaY = e.touches[0].clientY;
         inicioX = e.touches[0].clientX;
-        recorrido = 0; activa = true; decidido = false;
+        arranque = ultimoT = Date.now();
+        recorrido = 0; velocidad = 0;
+        activa = true; decidido = false;
       }, { passive: true });
+
       h.addEventListener('touchmove', function (e) {
         if (!activa) return;
-        var dy = e.touches[0].clientY - inicioY;
+        var y = e.touches[0].clientY;
+        var dy = y - inicioY;
         var dx = e.touches[0].clientX - inicioX;
+
         if (!decidido) {
+          // Hacia arriba o de lado no es un cierre: dejamos el gesto a la pagina.
           if (dy < 4 || Math.abs(dx) > Math.abs(dy)) { activa = false; return; }
           decidido = true;
           h.classList.add('arrastrando');
+          velo.classList.add('arrastrando');
         }
         if (h.scrollTop > 0) return;
         e.preventDefault();
+
+        var ahora = Date.now();
+        var paso = ahora - ultimoT;
+        if (paso > 0) velocidad = (y - ultimaY) / paso; // px por ms
+        ultimaY = y; ultimoT = ahora;
+
+        // El dedo manda: seguimos el dedo 1:1 y pintamos una sola vez por fotograma.
         recorrido = Math.max(0, dy);
-        h.style.transform = 'translateY(' + (recorrido * 0.9) + 'px)';
-        velo.style.opacity = String(Math.max(0, 1 - recorrido / 420));
+        if (pendiente === null) pendiente = requestAnimationFrame(dibuja);
       }, { passive: false });
+
       function soltar() {
         if (!activa) return;
         activa = false;
+        if (pendiente !== null) { cancelAnimationFrame(pendiente); pendiente = null; }
+        if (!decidido) return;
+
+        // Devolvemos las transiciones ANTES de mover: asi la animacion arranca
+        // desde donde se quedo el dedo, sin el salto de volver arriba primero.
         h.classList.remove('arrastrando');
+        velo.classList.remove('arrastrando');
+
+        var cierra = recorrido > 90 || (velocidad > 0.45 && recorrido > 24);
+        if (!cierra) {
+          h.style.transform = '';
+          velo.style.opacity = '';
+          recorrido = 0;
+          return;
+        }
+
+        h.style.transform = 'translate3d(0,101%,0)';
+        velo.classList.remove('abierto');
         velo.style.opacity = '';
-        h.style.transform = '';
-        if (recorrido > 90) cerrarHoja();
         recorrido = 0;
+
+        var hecho = false;
+        function fin() {
+          if (hecho) return;
+          hecho = true;
+          h.removeEventListener('transitionend', fin);
+          h.style.transform = '';
+          cerrarHoja();
+        }
+        h.addEventListener('transitionend', fin);
+        setTimeout(fin, 420);
       }
       h.addEventListener('touchend', soltar);
       h.addEventListener('touchcancel', soltar);
     }
+
     hazArrastrable(hojaAnadir);
     hazArrastrable(hojaAviso);
 
