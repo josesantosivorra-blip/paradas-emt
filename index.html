@@ -62,7 +62,11 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+    /* Mata el zoom por doble toque de iOS; el pellizco para ampliar sigue funcionando. */
+    touch-action: manipulation;
+  }
 
   html, body { height: 100%; }
   body {
