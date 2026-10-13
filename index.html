@@ -203,6 +203,13 @@
   }
   .estado-bloque.error { color: var(--rojo); }
   .estado-bloque:empty { display: none; }
+  .titulo-grande {
+    font-size: 1.22rem;
+    line-height: 1.15;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
   .rotulo {
     font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase;
     color: rgba(0, 100, 180, 0.6); margin-bottom: -0.45rem;
@@ -821,11 +828,7 @@
       panel.innerHTML =
         // Bloque 1: un aviso suelto para el bus que viene ahora
         '<div class="bloque bloque-puntual">' +
-          '<div class="cabecera-bloque"><div>' +
-            '<div class="titulo">Solo este bus</div>' +
-            '<div class="sub">Para el que viene ahora. Un único aviso y se apaga. No hay que elegir día ni hora.</div>' +
-          '</div></div>' +
-          '<div class="rotulo">Avisarme cuando le falten</div>' +
+          '<div class="titulo-grande">Avisarme cuando le falten</div>' +
           '<div class="contador">' +
             '<button class="paso menos-p" type="button" aria-label="Un minuto menos">−</button>' +
             '<div class="cifra"><input class="min-p" type="number" inputmode="numeric" min="1" max="45" step="1" aria-label="Minutos de antelación del aviso puntual"><span>min</span></div>' +
@@ -863,7 +866,6 @@
       cajaPanel.textContent = '';
       cajaPanel.appendChild(panel);
 
-      var bloquePuntual = panel.querySelector('.bloque-puntual');
       var bloqueSemanal = panel.querySelector('.bloque-semanal');
       var minP = panel.querySelector('.min-p');
       var minS = panel.querySelector('.min-s');
@@ -910,17 +912,14 @@
       function pintaPuntual() {
         var u = puntualDe(clave);
         if (u) {
-          botonPuntual.textContent = 'Cancelar este aviso';
+          botonPuntual.textContent = 'Cancelar';
           botonPuntual.classList.add('puntual-activo');
           minP.value = u.antelacion;
-          bloquePuntual.querySelector('.sub').textContent =
-            'Vigilando el próximo ' + t.info.linea + '. Te aviso cuando le falten ' + u.antelacion + ' min y luego se apaga.';
+          diP('Vigilando el próximo ' + t.info.linea + '. Te aviso cuando le falten ' + u.antelacion + ' min y luego se apaga.', false);
         } else {
-          botonPuntual.textContent = 'Avisarme con este bus';
+          botonPuntual.textContent = 'Avisarme';
           botonPuntual.classList.remove('puntual-activo');
           minP.value = programaDe(clave).antelacionPuntual;
-          bloquePuntual.querySelector('.sub').textContent =
-            'Para el que viene ahora. Un único aviso y se apaga. No hay que elegir día ni hora.';
         }
         trasCambio(t);
       }
@@ -977,8 +976,8 @@
         trasCambio(t);
       }
 
-      pintaPuntual();
       pintaDias();
+      pintaPuntual();
 
       panel.querySelector('.menos-p').addEventListener('click', function () { ponMinPuntual(programaDe(clave).antelacionPuntual - 1); });
       panel.querySelector('.mas-p').addEventListener('click', function () { ponMinPuntual(programaDe(clave).antelacionPuntual + 1); });
