@@ -1,6 +1,6 @@
 // Cachea la propia app para que abra al instante, incluso sin cobertura.
 // Los tiempos de la EMT nunca se cachean: siempre van a la red.
-const CACHE = 'paradas-emt-v2';
+const CACHE = 'paradas-emt-v3';
 const SHELL = ['./', './index.html', './icono.png'];
 
 self.addEventListener('install', (e) => {

@@ -5,31 +5,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mis paradas</title>
 <meta name="theme-color" content="#0064b4">
-<meta name="description" content="Tiempos de espera de la EMT de Madrid en mis cuatro paradas.">
+<meta name="description" content="Tiempos de espera de la EMT de Madrid en mis paradas.">
 <link rel="preconnect" href="https://www.emtmadrid.es" crossorigin>
 <link rel="dns-prefetch" href="https://www.emtmadrid.es">
 <link rel="apple-touch-icon" href="icono.png">
 <link rel="icon" href="icono.png">
 <script>
   // Arranca las peticiones antes de pintar nada: gana ~100 ms en movil.
-  window.PARADAS = [
+  window.FIJAS = [
     { linea: '126', parada: '1574', calle: 'Francos Rodríguez, 21' },
     { linea: '147', parada: '5340', calle: 'Castellana, 87' },
     { linea: '3',   parada: '1858', calle: 'Bravo Murillo, 219' },
     { linea: '128', parada: '1572', calle: 'Lope de Haro, 8' }
   ];
-  window.URL_PARADA = (n) => 'https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=' + n + '&size=3';
-  window.pedir = (n) => {
-    const ctrl = new AbortController();
-    const corta = setTimeout(() => ctrl.abort(), 7000);
-    return fetch(window.URL_PARADA(n), { cache: 'no-store', signal: ctrl.signal })
-      .then((r) => { if (!r.ok) throw new Error(r.status); return r.text(); })
-      .finally(() => clearTimeout(corta));
+  window.URL_PARADA = function (n) {
+    return 'https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=' + n + '&size=3';
   };
-  window.PRECARGA = window.PARADAS.map((p) => window.pedir(p.parada).catch((e) => e));
+  window.pedir = function (n) {
+    var ctrl = new AbortController();
+    var corta = setTimeout(function () { ctrl.abort(); }, 7000);
+    return fetch(window.URL_PARADA(n), { cache: 'no-store', signal: ctrl.signal })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .finally(function () { clearTimeout(corta); });
+  };
+  window.PRECARGA = {};
+  window.FIJAS.forEach(function (p) {
+    window.PRECARGA[p.parada] = window.pedir(p.parada).catch(function (e) { return e; });
+  });
 </script>
 <style>
-  /* Una columna: cuatro bandas azules, numero de linea, calle y proximos buses */
+  /* Columna de bandas azules: numero de linea, calle y proximos buses. Abajo, el boton de anadir. */
   @font-face {
     font-family: 'Saira Condensed';
     font-style: normal;
@@ -42,6 +47,7 @@
     color-scheme: light;
     --azul: #0064b4;
     --azul-oscuro: #004f8f;
+    --azul-palido: #e4f0fa;
     --fondo: #ffffff;
     --numero: #ffffff;
     --tenue: rgba(255, 255, 255, 0.72);
@@ -66,15 +72,13 @@
   }
 
   .columna {
-    height: 100%;
+    min-height: 100%;
     display: grid;
-    grid-template-rows: repeat(4, minmax(0, 1fr));
     gap: 10px;
     padding-inline: 16px;
     padding-block: 16px;
     max-width: 30rem;
     margin: 0 auto;
-    min-height: 26rem;
   }
 
   .linea {
@@ -86,7 +90,7 @@
     justify-content: center;
     gap: 0.1em;
     min-width: 0;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1rem;
     background: var(--azul);
     border-radius: 14px;
     color: var(--numero);
@@ -98,6 +102,11 @@
   .linea:focus-visible { outline: 4px solid var(--azul-oscuro); outline-offset: 3px; }
   @media (hover: hover) {
     .linea:hover { background: var(--azul-oscuro); }
+  }
+  .linea.entrando { animation: entra 320ms cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes entra {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
   }
 
   .numero {
@@ -132,7 +141,6 @@
   .proximo {
     font-size: clamp(1.15rem, 3.2vh, 1.7rem);
     line-height: 1;
-    letter-spacing: 0.01em;
   }
   .siguientes {
     font-size: clamp(0.78rem, 2vh, 1.05rem);
@@ -148,7 +156,6 @@
     text-transform: uppercase;
   }
 
-  /* Barra fina de carga, sin spinners que den saltos */
   .cargando::after {
     content: '';
     position: absolute;
@@ -165,94 +172,326 @@
     100% { transform: translateX(350%); }
   }
 
+  /* Boton de anadir */
+  .anadir {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    height: 3.4rem;
+    border: 2px dashed rgba(0, 100, 180, 0.4);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--azul);
+    font-size: 1.9rem;
+    line-height: 1;
+    padding-bottom: 0.18em;
+    transition: background 120ms ease, border-color 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .anadir:active { transform: scale(0.98); background: var(--azul-palido); }
+  .anadir:focus-visible { outline: 4px solid var(--azul); outline-offset: 3px; }
+  @media (hover: hover) {
+    .anadir:hover { background: var(--azul-palido); border-color: var(--azul); }
+  }
+
+  /* Hoja de anadir */
+  .velo {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 29, 53, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+    z-index: 10;
+  }
+  .velo.abierto { opacity: 1; pointer-events: auto; }
+
+  .hoja {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 11;
+    background: var(--fondo);
+    border-radius: 18px 18px 0 0;
+    padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
+    max-height: 88vh;
+    overflow-y: auto;
+    transform: translateY(101%);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 -10px 40px rgba(0, 40, 75, 0.18);
+  }
+  .hoja.abierta { transform: none; }
+  .hoja h2 {
+    margin: 0 0 0.1rem;
+    font-size: 1.3rem;
+    letter-spacing: 0.01em;
+  }
+  .hoja p.pista {
+    margin: 0 0 0.9rem;
+    font-size: 0.85rem;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(0, 100, 180, 0.65);
+  }
+
+  .campo {
+    width: 100%;
+    font: inherit;
+    font-size: 16px; /* evita el zoom de iOS al enfocar */
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 0.75rem 0.85rem;
+    border: 2px solid rgba(0, 100, 180, 0.3);
+    border-radius: 11px;
+    background: var(--fondo);
+    color: var(--azul);
+  }
+  .campo:focus { outline: none; border-color: var(--azul); }
+  .campo::placeholder { color: rgba(0, 100, 180, 0.4); }
+
+  .estado {
+    margin: 0.75rem 0 0;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    min-height: 1.3em;
+  }
+  .estado.error { color: #b3261e; }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+  }
+  .chip {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0.5rem 0.9rem;
+    border: 0;
+    border-radius: 10px;
+    background: var(--azul);
+    color: var(--numero);
+    font-variant-numeric: tabular-nums;
+    transition: background 120ms ease, transform 120ms ease;
+  }
+  .chip:active { transform: scale(0.96); background: var(--azul-oscuro); }
+  .chip.ya { background: var(--azul-palido); color: rgba(0, 100, 180, 0.55); }
+
+  .mias {
+    margin-top: 1.1rem;
+    border-top: 2px solid var(--azul-palido);
+    padding-top: 0.8rem;
+  }
+  .mias h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(0, 100, 180, 0.65);
+  }
+  .mias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+  .mias li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--azul-palido);
+    border-radius: 10px;
+    padding: 0.5rem 0.5rem 0.5rem 0.8rem;
+  }
+  .mias .etiqueta { flex: 1; min-width: 0; font-size: 1rem; letter-spacing: 0.02em; }
+  .mias .etiqueta small { display: block; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0, 100, 180, 0.6); }
+  .quitar {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: rgba(0, 100, 180, 0.7);
+    font-size: 1.3rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+  }
+  .quitar:active { background: rgba(0, 100, 180, 0.15); }
+
+  .cerrar {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.8rem;
+    border: 0;
+    border-radius: 11px;
+    background: var(--azul-palido);
+    color: var(--azul);
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .cerrar:active { background: rgba(0, 100, 180, 0.18); }
+
   @media (prefers-reduced-motion: reduce) {
-    .linea, .tiempos { transition: none; }
-    .linea:active { transform: none; }
+    .linea, .tiempos, .anadir, .hoja, .velo, .chip { transition: none; }
+    .linea:active, .anadir:active { transform: none; }
+    .linea.entrando { animation: none; }
     .cargando::after { animation: none; width: 100%; opacity: 0.25; }
   }
 </style>
 </head>
 <body>
 <main class="columna" id="columna"></main>
+
+<div class="velo" id="velo"></div>
+<section class="hoja" id="hoja" role="dialog" aria-modal="true" aria-labelledby="hoja-titulo" aria-hidden="true">
+  <h2 id="hoja-titulo">Añadir una línea</h2>
+  <p class="pista">Pega el enlace de la EMT o el número de parada</p>
+  <input class="campo" id="campo" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false"
+         placeholder="https://www.emtmadrid.es/… o 1574" aria-describedby="estado">
+  <p class="estado" id="estado"></p>
+  <div class="chips" id="chips"></div>
+  <div class="mias" id="mias" hidden>
+    <h3>Líneas que has añadido</h3>
+    <ul id="lista-mias"></ul>
+  </div>
+  <button class="cerrar" id="cerrar" type="button">Cerrar</button>
+</section>
+
 <script>
   (function () {
+    var LLAVE = 'paradas-emt:extras';
     var columna = document.getElementById('columna');
+    var velo = document.getElementById('velo');
+    var hoja = document.getElementById('hoja');
+    var campo = document.getElementById('campo');
+    var estado = document.getElementById('estado');
+    var chips = document.getElementById('chips');
+    var cajaMias = document.getElementById('mias');
+    var listaMias = document.getElementById('lista-mias');
     var tarjetas = [];
+    var ultima = 0;
 
-    // Pintamos la estructura de golpe; los tiempos llegan despues.
-    var fragmento = document.createDocumentFragment();
-    window.PARADAS.forEach(function (p) {
-      var a = document.createElement('a');
-      a.className = 'linea cargando';
-      a.href = window.URL_PARADA(p.parada);
-      a.innerHTML =
-        '<span class="numero">' + p.linea + '</span>' +
-        '<span class="calle">' + p.calle + '</span>' +
-        '<span class="tiempos"></span>';
-      fragmento.appendChild(a);
-      tarjetas.push({ info: p, nodo: a, tiempos: a.querySelector('.tiempos') });
-    });
-    columna.appendChild(fragmento);
+    function extras() {
+      try {
+        var crudo = localStorage.getItem(LLAVE);
+        var v = crudo ? JSON.parse(crudo) : [];
+        return Array.isArray(v) ? v : [];
+      } catch (e) { return []; }
+    }
+    function guardar(v) {
+      try { localStorage.setItem(LLAVE, JSON.stringify(v)); } catch (e) {}
+    }
+    function todas() { return window.FIJAS.concat(extras()); }
 
+    // ---------- lectura del panel de la EMT ----------
     function minutos(texto) {
       if (/^\s*>/.test(texto)) return 61;
       var m = texto.match(/(\d+)/);
       return m ? parseInt(m[1], 10) : null;
     }
-
-    function leer(html, linea) {
+    function analizar(html) {
       var doc = new DOMParser().parseFromString(html, 'text/html');
-      var filas = Array.prototype.slice.call(doc.querySelectorAll('tr'));
-      var salida = [];
-      filas.forEach(function (tr) {
-        var celdas = tr.querySelectorAll('td');
-        if (celdas.length < 3) return;
-        if (celdas[0].textContent.trim() !== linea) return;
-        var min = minutos(celdas[2].textContent.trim());
-        if (min !== null) salida.push(min);
+      var filas = [];
+      Array.prototype.forEach.call(doc.querySelectorAll('tr'), function (tr) {
+        var c = tr.querySelectorAll('td');
+        if (c.length < 3) return;
+        var linea = c[0].textContent.trim();
+        if (!/^\w+$/.test(linea) || !/\d/.test(linea)) return;
+        var min = minutos(c[2].textContent.trim());
+        if (min !== null) filas.push({ linea: linea, min: min });
       });
-      return salida.sort(function (a, b) { return a - b; });
+      var h2 = doc.querySelectorAll('h2');
+      var calle = h2.length > 1 ? h2[1].textContent.trim() : '';
+      var nombre = h2.length ? h2[0].textContent.replace(/^Parada:\s*\d+\s*/, '').trim() : '';
+      return { filas: filas, calle: calle || nombre, nombre: nombre };
+    }
+    function tiemposDe(datos, linea) {
+      return datos.filas
+        .filter(function (f) { return f.linea === linea; })
+        .map(function (f) { return f.min; })
+        .sort(function (a, b) { return a - b; });
     }
 
+    // ---------- pintado ----------
     function etiqueta(min) {
       if (min === 0) return 'llegando';
       if (min > 60) return '+60 min';
       return min + ' min';
     }
-
-    function pinta(tarjeta, lista) {
-      var caja = tarjeta.tiempos;
-      tarjeta.nodo.classList.remove('cargando');
+    function pinta(t, lista) {
+      t.nodo.classList.remove('cargando');
       if (!lista || !lista.length) {
-        caja.innerHTML = '<span class="aviso">sin buses ahora</span>';
+        t.tiempos.innerHTML = '<span class="aviso">sin buses ahora</span>';
       } else {
         var resto = lista.slice(1, 3).map(function (m) { return m > 60 ? '+60' : m; });
-        caja.innerHTML =
+        t.tiempos.innerHTML =
           '<span class="proximo">' + etiqueta(lista[0]) + '</span>' +
           (resto.length ? '<span class="siguientes">· ' + resto.join(' · ') + '</span>' : '');
       }
-      caja.classList.remove('refrescando');
-      caja.classList.add('visible');
+      t.tiempos.classList.remove('refrescando');
+      t.tiempos.classList.add('visible');
     }
-
-    function falla(tarjeta) {
-      tarjeta.nodo.classList.remove('cargando');
-      tarjeta.tiempos.innerHTML = '<span class="aviso">sin conexión</span>';
-      tarjeta.tiempos.classList.remove('refrescando');
-      tarjeta.tiempos.classList.add('visible');
+    function falla(t) {
+      t.nodo.classList.remove('cargando');
+      t.tiempos.innerHTML = '<span class="aviso">sin conexión</span>';
+      t.tiempos.classList.remove('refrescando');
+      t.tiempos.classList.add('visible');
     }
-
-    function resolver(tarjeta, promesa) {
+    function resolver(t, promesa) {
       return promesa.then(function (html) {
         if (typeof html !== 'string') throw html;
-        pinta(tarjeta, leer(html, tarjeta.info.linea));
-      }).catch(function () { falla(tarjeta); });
+        pinta(t, tiemposDe(analizar(html), t.info.linea));
+      }).catch(function () { falla(t); });
     }
 
-    // Primera pintada: usamos las peticiones lanzadas en la cabecera.
-    tarjetas.forEach(function (t, i) { resolver(t, Promise.resolve(window.PRECARGA[i])); });
+    function render(nuevaClave) {
+      var lista = todas();
+      columna.textContent = '';
+      tarjetas = [];
+      columna.style.gridTemplateRows = 'repeat(' + lista.length + ', minmax(5.2rem, 1fr)) auto';
 
-    var ultima = Date.now();
+      var frag = document.createDocumentFragment();
+      lista.forEach(function (p) {
+        var a = document.createElement('a');
+        a.className = 'linea cargando';
+        if (nuevaClave && p.linea + '@' + p.parada === nuevaClave) a.classList.add('entrando');
+        a.href = window.URL_PARADA(p.parada);
+        a.innerHTML =
+          '<span class="numero"></span><span class="calle"></span><span class="tiempos"></span>';
+        a.querySelector('.numero').textContent = p.linea;
+        a.querySelector('.calle').textContent = p.calle;
+        frag.appendChild(a);
+        tarjetas.push({ info: p, nodo: a, tiempos: a.querySelector('.tiempos') });
+      });
+
+      var boton = document.createElement('button');
+      boton.className = 'anadir';
+      boton.type = 'button';
+      boton.setAttribute('aria-label', 'Añadir una línea');
+      boton.textContent = '+';
+      boton.addEventListener('click', abrir);
+      frag.appendChild(boton);
+      columna.appendChild(frag);
+
+      ultima = Date.now();
+      tarjetas.forEach(function (t) {
+        var pre = window.PRECARGA[t.info.parada];
+        resolver(t, pre ? Promise.resolve(pre) : window.pedir(t.info.parada));
+      });
+      // La precarga solo sirve para la primera pintada.
+      window.PRECARGA = {};
+    }
+
     function refrescar() {
       ultima = Date.now();
       tarjetas.forEach(function (t) {
@@ -261,11 +500,150 @@
       });
     }
 
+    // ---------- hoja de anadir ----------
+    var buscadas = {};
+    var ultimoTexto = '';
+    var temporizador = null;
+
+    function abrir() {
+      pintaMias();
+      velo.classList.add('abierto');
+      hoja.classList.add('abierta');
+      hoja.setAttribute('aria-hidden', 'false');
+      setTimeout(function () { campo.focus(); }, 120);
+    }
+    function cerrar() {
+      velo.classList.remove('abierto');
+      hoja.classList.remove('abierta');
+      hoja.setAttribute('aria-hidden', 'true');
+      campo.blur();
+    }
+
+    function numeroDeParada(texto) {
+      var t = (texto || '').trim();
+      if (!t) return null;
+      var m = t.match(/stopnum=(\d{1,5})/i);
+      if (m) return m[1];
+      if (/^\d{1,5}$/.test(t)) return t;
+      return null;
+    }
+
+    function di(texto, esError) {
+      estado.textContent = texto;
+      estado.classList.toggle('error', !!esError);
+    }
+
+    function buscar(parada) {
+      chips.textContent = '';
+      di('Buscando la parada ' + parada + '…', false);
+      var p = buscadas[parada] || (buscadas[parada] = window.pedir(parada));
+      p.then(function (html) {
+        var datos = analizar(html);
+        if (!datos.filas.length) {
+          di('La parada ' + parada + ' no da ninguna línea ahora mismo. Puede que no exista o que no pase nada a esta hora.', true);
+          return;
+        }
+        var yaTengo = {};
+        todas().forEach(function (x) { yaTengo[x.linea + '@' + x.parada] = true; });
+        var vistas = {};
+        di(datos.calle ? 'Parada ' + parada + ' · ' + datos.calle : 'Parada ' + parada, false);
+        datos.filas.forEach(function (f) {
+          if (vistas[f.linea]) return;
+          vistas[f.linea] = true;
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'chip';
+          b.textContent = f.linea;
+          if (yaTengo[f.linea + '@' + parada]) {
+            b.classList.add('ya');
+            b.disabled = true;
+            b.setAttribute('aria-label', 'Línea ' + f.linea + ', ya la tienes');
+          } else {
+            b.setAttribute('aria-label', 'Añadir la línea ' + f.linea);
+            b.addEventListener('click', function () {
+              anadir({ linea: f.linea, parada: parada, calle: datos.calle });
+            });
+          }
+          chips.appendChild(b);
+        });
+      }).catch(function () {
+        delete buscadas[parada];
+        di('No he podido leer esa parada. Revisa el enlace o inténtalo de nuevo.', true);
+      });
+    }
+
+    function anadir(p) {
+      var v = extras();
+      v.push(p);
+      guardar(v);
+      cerrar();
+      campo.value = '';
+      chips.textContent = '';
+      di('', false);
+      render(p.linea + '@' + p.parada);
+    }
+
+    function quitar(indice) {
+      var v = extras();
+      v.splice(indice, 1);
+      guardar(v);
+      pintaMias();
+      render();
+    }
+
+    function pintaMias() {
+      var v = extras();
+      listaMias.textContent = '';
+      cajaMias.hidden = v.length === 0;
+      v.forEach(function (p, i) {
+        var li = document.createElement('li');
+        var etq = document.createElement('span');
+        etq.className = 'etiqueta';
+        etq.innerHTML = '<small></small>';
+        etq.insertBefore(document.createTextNode('Línea ' + p.linea), etq.firstChild);
+        etq.querySelector('small').textContent = p.calle + ' · parada ' + p.parada;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'quitar';
+        b.textContent = '✕';
+        b.setAttribute('aria-label', 'Quitar la línea ' + p.linea);
+        b.addEventListener('click', function () { quitar(i); });
+        li.appendChild(etq);
+        li.appendChild(b);
+        listaMias.appendChild(li);
+      });
+    }
+
+    campo.addEventListener('input', function () {
+      var texto = campo.value;
+      if (texto === ultimoTexto) return;
+      ultimoTexto = texto;
+      clearTimeout(temporizador);
+      chips.textContent = '';
+      if (!texto.trim()) { di('', false); return; }
+      var parada = numeroDeParada(texto);
+      if (!parada) { di('Pega un enlace de la EMT con stopnum=… o escribe solo el número de parada.', true); return; }
+      temporizador = setTimeout(function () { buscar(parada); }, 250);
+    });
+    campo.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var parada = numeroDeParada(campo.value);
+        if (parada) buscar(parada);
+      }
+    });
+    document.getElementById('cerrar').addEventListener('click', cerrar);
+    velo.addEventListener('click', cerrar);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && hoja.classList.contains('abierta')) cerrar();
+    });
+
+    // ---------- arranque ----------
+    render();
+
     setInterval(function () {
       if (document.visibilityState === 'visible') refrescar();
     }, 30000);
-
-    // Al volver a la app (desde la web de la EMT o del fondo) los datos ya estan frescos.
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible' && Date.now() - ultima > 10000) refrescar();
     });
