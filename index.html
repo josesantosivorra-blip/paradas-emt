@@ -112,22 +112,23 @@
     to   { opacity: 1; transform: none; }
   }
   .icono-reloj {
-    width: 1em; height: 1em; flex: none;
-    vertical-align: -0.14em;
+    width: 1.1em; height: 1.1em; flex: none;
     stroke: currentColor; fill: none;
     stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round;
   }
   .programado {
-    display: inline-flex; align-items: center; gap: 0.3em;
-    margin-left: 0.5em; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 0.32em;
+    white-space: nowrap; line-height: 1;
   }
   .boton-borde .icono-reloj { width: 1.45rem; height: 1.45rem; stroke-width: 2; }
 
   .numero { font-size: clamp(2.1rem, 8.5vh, 3.9rem); line-height: 1; font-variant-numeric: tabular-nums; }
   .calle {
+    display: flex; align-items: center; justify-content: center;
+    flex-wrap: wrap; gap: 0.1em 0.55em;
     font-size: clamp(0.72rem, 1.9vh, 0.95rem);
     line-height: 1.25; letter-spacing: 0.07em; text-transform: uppercase;
-    color: var(--tenue); text-align: center; text-wrap: balance;
+    color: var(--tenue); text-align: center;
     padding-inline: 0.5rem;
   }
   .tiempos {
@@ -321,7 +322,16 @@
   .dia .palanca { margin-left: auto; }
 
   .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.9rem; }
-  .cerrar { margin-top: 0.6rem; }
+  .cerrar { margin-top: 0.5rem; }
+  .borrar {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    width: 100%; margin-top: 0.6rem; padding: 0.7rem;
+    border: 0; border-radius: 11px; background: transparent;
+    color: #b3261e; font-size: 0.92rem; letter-spacing: 0.06em; text-transform: uppercase;
+    transition: background 120ms ease;
+  }
+  .borrar:active { background: rgba(179, 38, 30, 0.1); }
+  .borrar.confirmando { background: rgba(179, 38, 30, 0.12); }
   .cerrar, .secundario {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
     width: 100%; padding: 0.8rem; border: 0; border-radius: 11px;
@@ -391,6 +401,7 @@
     <button class="secundario" id="probar" type="button">Probar</button>
     <button class="secundario principal" id="guardar" type="button">Guardar</button>
   </div>
+  <button class="borrar" id="borrar" type="button">Borrar la programación</button>
   <button class="cerrar" id="cerrar-aviso" type="button">Cerrar</button>
 </section>
 
@@ -536,7 +547,9 @@
         el.innerHTML = '<span class="numero"></span><span class="calle"></span><span class="tiempos"></span>';
         el.querySelector('.numero').textContent = p.linea;
         var cajaCalle = el.querySelector('.calle');
-        cajaCalle.textContent = p.calle;
+        var textoCalle = document.createElement('span');
+        textoCalle.textContent = p.calle;
+        cajaCalle.appendChild(textoCalle);
         if (a.activo && a.linea === p.linea && a.parada === p.parada) {
           var hoy = a.dias[String(new Date().getDay())] || null;
           var marca = document.createElement('span');
@@ -595,6 +608,7 @@
     }
     function cerrarHoja() {
       if (!abierta) return;
+      if (typeof reponerBorrar === 'function') reponerBorrar();
       velo.classList.remove('abierto');
       abierta.classList.remove('abierta');
       abierta.setAttribute('aria-hidden', 'true');
@@ -970,6 +984,55 @@
           di(estadoAviso, 'No ha salido: ' + (res.d.error || res.d.detalle || res.d.estado), true);
         })
         .catch(function (e) { di(estadoAviso, 'No he podido mandarlo: ' + e.message, true); });
+    });
+
+    var botonBorrar = document.getElementById('borrar');
+    var esperandoConfirmacion = false;
+    var relojConfirmacion = null;
+
+    function reponerBorrar() {
+      esperandoConfirmacion = false;
+      botonBorrar.classList.remove('confirmando');
+      botonBorrar.textContent = 'Borrar la programación';
+      clearTimeout(relojConfirmacion);
+    }
+
+    botonBorrar.addEventListener('click', function () {
+      if (!esperandoConfirmacion) {
+        esperandoConfirmacion = true;
+        botonBorrar.classList.add('confirmando');
+        botonBorrar.textContent = 'Pulsa otra vez para borrarlo';
+        relojConfirmacion = setTimeout(reponerBorrar, 5000);
+        return;
+      }
+      reponerBorrar();
+      di(estadoAviso, 'Borrando…', false);
+
+      // Se va todo: los ajustes de este movil, su alta en el vigilante y la suscripcion.
+      try { localStorage.removeItem(LLAVE_AVISO); } catch (e) {}
+      activo.checked = false;
+
+      var tareas = [
+        fetch(window.VIGILANTE + '/baja', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: miId() })
+        }).catch(function () {})
+      ];
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        tareas.push(
+          navigator.serviceWorker.ready
+            .then(function (reg) { return reg.pushManager.getSubscription(); })
+            .then(function (s) { return s ? s.unsubscribe() : null; })
+            .catch(function () {})
+        );
+      }
+
+      Promise.all(tareas).then(function () {
+        pintaAviso();
+        render();
+        di(estadoAviso, 'Borrado. No te avisaré hasta que lo vuelvas a programar.', false);
+      });
     });
 
     // ---------- arranque ----------
