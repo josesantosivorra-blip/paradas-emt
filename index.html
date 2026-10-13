@@ -6,6 +6,10 @@
 <title>Mis paradas</title>
 <meta name="theme-color" content="#0064b4">
 <meta name="description" content="Tiempos de espera de la EMT de Madrid en mis paradas.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Paradas">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://www.emtmadrid.es" crossorigin>
 <link rel="dns-prefetch" href="https://www.emtmadrid.es">
 <link rel="apple-touch-icon" href="icono.png">
@@ -18,6 +22,7 @@
     { linea: '3',   parada: '1858', calle: 'Bravo Murillo, 219' },
     { linea: '128', parada: '1572', calle: 'Lope de Haro, 8' }
   ];
+  window.VIGILANTE = 'https://aviso-emt.hossantos.workers.dev';
   window.URL_PARADA = function (n) {
     return 'https://www.emtmadrid.es/PMVVisor/pmv.aspx?stopnum=' + n + '&size=3';
   };
@@ -34,7 +39,7 @@
   });
 </script>
 <style>
-  /* Columna de bandas azules: numero de linea, calle y proximos buses. Abajo, el boton de anadir. */
+  /* Columna de bandas azules: numero de linea, calle y proximos buses. Abajo, anadir y avisos. */
   @font-face {
     font-family: 'Saira Condensed';
     font-style: normal;
@@ -100,250 +105,179 @@
   }
   .linea:active { transform: scale(0.975); background: var(--azul-oscuro); }
   .linea:focus-visible { outline: 4px solid var(--azul-oscuro); outline-offset: 3px; }
-  @media (hover: hover) {
-    .linea:hover { background: var(--azul-oscuro); }
-  }
+  @media (hover: hover) { .linea:hover { background: var(--azul-oscuro); } }
   .linea.entrando { animation: entra 320ms cubic-bezier(0.22, 1, 0.36, 1); }
   @keyframes entra {
     from { opacity: 0; transform: translateY(14px) scale(0.98); }
     to   { opacity: 1; transform: none; }
   }
-
-  .numero {
-    font-size: clamp(2.1rem, 8.5vh, 3.9rem);
+  .campana {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.7rem;
+    font-size: 0.95rem;
     line-height: 1;
-    font-variant-numeric: tabular-nums;
+    color: var(--tenue);
   }
 
+  .numero { font-size: clamp(2.1rem, 8.5vh, 3.9rem); line-height: 1; font-variant-numeric: tabular-nums; }
   .calle {
     font-size: clamp(0.72rem, 1.9vh, 0.95rem);
-    line-height: 1.2;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--tenue);
-    text-align: center;
-    text-wrap: balance;
+    line-height: 1.2; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--tenue); text-align: center; text-wrap: balance;
   }
-
   .tiempos {
-    margin-top: 0.35em;
-    min-height: 1.5em;
-    display: flex;
-    align-items: baseline;
-    gap: 0.4em;
+    margin-top: 0.35em; min-height: 1.5em;
+    display: flex; align-items: baseline; gap: 0.4em;
     font-variant-numeric: tabular-nums;
-    opacity: 0;
-    transition: opacity 260ms ease;
+    opacity: 0; transition: opacity 260ms ease;
   }
   .tiempos.visible { opacity: 1; }
   .tiempos.refrescando { opacity: 0.45; }
-
-  .proximo {
-    font-size: clamp(1.15rem, 3.2vh, 1.7rem);
-    line-height: 1;
-  }
-  .siguientes {
-    font-size: clamp(0.78rem, 2vh, 1.05rem);
-    line-height: 1;
-    color: var(--muy-tenue);
-    letter-spacing: 0.04em;
-  }
-  .aviso {
-    font-size: clamp(0.78rem, 2vh, 1rem);
-    line-height: 1;
-    color: var(--muy-tenue);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
+  .proximo { font-size: clamp(1.15rem, 3.2vh, 1.7rem); line-height: 1; }
+  .siguientes { font-size: clamp(0.78rem, 2vh, 1.05rem); line-height: 1; color: var(--muy-tenue); letter-spacing: 0.04em; }
+  .aviso { font-size: clamp(0.78rem, 2vh, 1rem); line-height: 1; color: var(--muy-tenue); letter-spacing: 0.05em; text-transform: uppercase; }
 
   .cargando::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 3px;
-    width: 40%;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 3px;
+    content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: 40%;
+    background: rgba(255, 255, 255, 0.5); border-radius: 3px;
     animation: avanza 1100ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
   }
-  @keyframes avanza {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(350%); }
-  }
+  @keyframes avanza { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
 
-  /* Boton de anadir */
-  .anadir {
-    appearance: none;
-    -webkit-appearance: none;
-    font: inherit;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-    height: 3.4rem;
-    border: 2px dashed rgba(0, 100, 180, 0.4);
-    border-radius: 14px;
-    background: transparent;
-    color: var(--azul);
-    font-size: 1.9rem;
-    line-height: 1;
-    padding-bottom: 0.18em;
+  .acciones { display: grid; grid-template-columns: 1fr 3.4rem; gap: 10px; }
+  .boton-borde {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    display: grid; place-items: center; height: 3.4rem;
+    border: 2px dashed rgba(0, 100, 180, 0.4); border-radius: 14px;
+    background: transparent; color: var(--azul); line-height: 1;
     transition: background 120ms ease, border-color 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .anadir:active { transform: scale(0.98); background: var(--azul-palido); }
-  .anadir:focus-visible { outline: 4px solid var(--azul); outline-offset: 3px; }
-  @media (hover: hover) {
-    .anadir:hover { background: var(--azul-palido); border-color: var(--azul); }
-  }
+  .boton-borde.mas { font-size: 1.9rem; padding-bottom: 0.18em; }
+  .boton-borde.reloj { font-size: 1.35rem; }
+  .boton-borde.encendido { border-style: solid; border-color: var(--azul); background: var(--azul-palido); }
+  .boton-borde:active { transform: scale(0.98); background: var(--azul-palido); }
+  .boton-borde:focus-visible { outline: 4px solid var(--azul); outline-offset: 3px; }
+  @media (hover: hover) { .boton-borde:hover { background: var(--azul-palido); border-color: var(--azul); } }
 
-  /* Hoja de anadir */
+  /* Hojas */
   .velo {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 29, 53, 0.4);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 200ms ease;
-    z-index: 10;
+    position: fixed; inset: 0; background: rgba(0, 29, 53, 0.4);
+    opacity: 0; pointer-events: none; transition: opacity 200ms ease; z-index: 10;
   }
   .velo.abierto { opacity: 1; pointer-events: auto; }
-
   .hoja {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 11;
-    background: var(--fondo);
-    border-radius: 18px 18px 0 0;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 11;
+    background: var(--fondo); border-radius: 18px 18px 0 0;
     padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
-    max-height: 88vh;
-    overflow-y: auto;
+    max-height: 88vh; overflow-y: auto;
     transform: translateY(101%);
     transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow: 0 -10px 40px rgba(0, 40, 75, 0.18);
   }
   .hoja.abierta { transform: none; }
-  .hoja h2 {
-    margin: 0 0 0.1rem;
-    font-size: 1.3rem;
-    letter-spacing: 0.01em;
-  }
+  .hoja h2 { margin: 0 0 0.1rem; font-size: 1.3rem; }
   .hoja p.pista {
-    margin: 0 0 0.9rem;
-    font-size: 0.85rem;
-    line-height: 1.35;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgba(0, 100, 180, 0.65);
+    margin: 0 0 0.9rem; font-size: 0.85rem; line-height: 1.35;
+    letter-spacing: 0.04em; text-transform: uppercase; color: rgba(0, 100, 180, 0.65);
+  }
+  .hoja h3 {
+    margin: 1.1rem 0 0.5rem; font-size: 0.85rem; letter-spacing: 0.07em;
+    text-transform: uppercase; color: rgba(0, 100, 180, 0.65);
   }
 
   .campo {
-    width: 100%;
-    font: inherit;
-    font-size: 16px; /* evita el zoom de iOS al enfocar */
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    padding: 0.75rem 0.85rem;
-    border: 2px solid rgba(0, 100, 180, 0.3);
-    border-radius: 11px;
-    background: var(--fondo);
-    color: var(--azul);
+    width: 100%; font: inherit; font-size: 16px; font-weight: 700; letter-spacing: 0.02em;
+    padding: 0.75rem 0.85rem; border: 2px solid rgba(0, 100, 180, 0.3);
+    border-radius: 11px; background: var(--fondo); color: var(--azul);
   }
   .campo:focus { outline: none; border-color: var(--azul); }
   .campo::placeholder { color: rgba(0, 100, 180, 0.4); }
 
-  .estado {
-    margin: 0.75rem 0 0;
-    font-size: 0.95rem;
-    line-height: 1.35;
-    min-height: 1.3em;
-  }
+  .estado { margin: 0.75rem 0 0; font-size: 0.95rem; line-height: 1.35; min-height: 1.3em; }
   .estado.error { color: #b3261e; }
 
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.7rem;
-  }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
   .chip {
-    appearance: none;
-    -webkit-appearance: none;
-    font: inherit;
-    cursor: pointer;
-    font-size: 1.25rem;
-    line-height: 1;
-    padding: 0.5rem 0.9rem;
-    border: 0;
-    border-radius: 10px;
-    background: var(--azul);
-    color: var(--numero);
-    font-variant-numeric: tabular-nums;
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    font-size: 1.25rem; line-height: 1; padding: 0.5rem 0.9rem; border: 0; border-radius: 10px;
+    background: var(--azul); color: var(--numero); font-variant-numeric: tabular-nums;
     transition: background 120ms ease, transform 120ms ease;
   }
   .chip:active { transform: scale(0.96); background: var(--azul-oscuro); }
   .chip.ya { background: var(--azul-palido); color: rgba(0, 100, 180, 0.55); }
+  .chip.apagado { background: var(--azul-palido); color: rgba(0, 100, 180, 0.7); }
+  .chip.pequeno { font-size: 1rem; padding: 0.45rem 0.75rem; }
 
-  .mias {
-    margin-top: 1.1rem;
-    border-top: 2px solid var(--azul-palido);
-    padding-top: 0.8rem;
-  }
-  .mias h3 {
-    margin: 0 0 0.5rem;
-    font-size: 0.85rem;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: rgba(0, 100, 180, 0.65);
-  }
+  .mias { margin-top: 1.1rem; border-top: 2px solid var(--azul-palido); padding-top: 0.8rem; }
   .mias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
   .mias li {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    background: var(--azul-palido);
-    border-radius: 10px;
-    padding: 0.5rem 0.5rem 0.5rem 0.8rem;
+    display: flex; align-items: center; gap: 0.6rem;
+    background: var(--azul-palido); border-radius: 10px; padding: 0.5rem 0.5rem 0.5rem 0.8rem;
   }
   .mias .etiqueta { flex: 1; min-width: 0; font-size: 1rem; letter-spacing: 0.02em; }
-  .mias .etiqueta small { display: block; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: rgba(0, 100, 180, 0.6); }
+  .mias .etiqueta small {
+    display: block; font-size: 0.75rem; letter-spacing: 0.05em;
+    text-transform: uppercase; color: rgba(0, 100, 180, 0.6);
+  }
   .quitar {
-    appearance: none;
-    -webkit-appearance: none;
-    font: inherit;
-    cursor: pointer;
-    border: 0;
-    background: transparent;
-    color: rgba(0, 100, 180, 0.7);
-    font-size: 1.3rem;
-    line-height: 1;
-    padding: 0.25rem 0.5rem;
-    border-radius: 8px;
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer; border: 0;
+    background: transparent; color: rgba(0, 100, 180, 0.7); font-size: 1.3rem; line-height: 1;
+    padding: 0.25rem 0.5rem; border-radius: 8px;
   }
   .quitar:active { background: rgba(0, 100, 180, 0.15); }
 
-  .cerrar {
-    appearance: none;
-    -webkit-appearance: none;
-    font: inherit;
-    cursor: pointer;
-    width: 100%;
-    margin-top: 1rem;
-    padding: 0.8rem;
-    border: 0;
-    border-radius: 11px;
-    background: var(--azul-palido);
-    color: var(--azul);
-    font-size: 1rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+  /* Interruptor */
+  .interruptor {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    background: var(--azul-palido); border-radius: 12px; padding: 0.7rem 0.9rem;
   }
-  .cerrar:active { background: rgba(0, 100, 180, 0.18); }
+  .interruptor span { font-size: 1.05rem; }
+  .palanca { position: relative; width: 3.3rem; height: 1.9rem; flex: none; }
+  .palanca input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .palanca i {
+    position: absolute; inset: 0; border-radius: 999px;
+    background: rgba(0, 100, 180, 0.28); transition: background 160ms ease;
+  }
+  .palanca i::after {
+    content: ''; position: absolute; top: 0.2rem; left: 0.2rem;
+    width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #fff;
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 1px 3px rgba(0, 40, 75, 0.3);
+  }
+  .palanca input:checked + i { background: var(--azul); }
+  .palanca input:checked + i::after { transform: translateX(1.4rem); }
+  .palanca input:focus-visible + i { outline: 3px solid var(--azul); outline-offset: 3px; }
+
+  /* Dias y horas */
+  .dias { display: flex; flex-direction: column; gap: 0.4rem; }
+  .dia {
+    display: grid; grid-template-columns: 2.6rem 1fr auto; align-items: center; gap: 0.6rem;
+    background: var(--azul-palido); border-radius: 10px; padding: 0.4rem 0.5rem 0.4rem 0.6rem;
+  }
+  .dia .nombre { font-size: 1.05rem; letter-spacing: 0.05em; }
+  .dia.apagado { opacity: 0.45; }
+  .dia input[type="time"] {
+    font: inherit; font-size: 16px; font-weight: 700; color: var(--azul);
+    background: var(--fondo); border: 2px solid rgba(0, 100, 180, 0.25);
+    border-radius: 8px; padding: 0.3rem 0.45rem; width: 100%;
+  }
+  .dia input[type="time"]:disabled { opacity: 0.5; }
+
+  .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1rem; }
+  .cerrar, .secundario {
+    appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
+    width: 100%; padding: 0.8rem; border: 0; border-radius: 11px;
+    background: var(--azul-palido); color: var(--azul);
+    font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .cerrar:active, .secundario:active { background: rgba(0, 100, 180, 0.18); }
+  .secundario.principal { background: var(--azul); color: var(--numero); }
+  .secundario.principal:active { background: var(--azul-oscuro); }
 
   @media (prefers-reduced-motion: reduce) {
-    .linea, .tiempos, .anadir, .hoja, .velo, .chip { transition: none; }
-    .linea:active, .anadir:active { transform: none; }
+    .linea, .tiempos, .boton-borde, .hoja, .velo, .chip, .palanca i, .palanca i::after { transition: none; }
+    .linea:active, .boton-borde:active { transform: none; }
     .linea.entrando { animation: none; }
     .cargando::after { animation: none; width: 100%; opacity: 0.25; }
   }
@@ -353,45 +287,106 @@
 <main class="columna" id="columna"></main>
 
 <div class="velo" id="velo"></div>
-<section class="hoja" id="hoja" role="dialog" aria-modal="true" aria-labelledby="hoja-titulo" aria-hidden="true">
-  <h2 id="hoja-titulo">Añadir una línea</h2>
+
+<section class="hoja" id="hoja-anadir" role="dialog" aria-modal="true" aria-labelledby="titulo-anadir" aria-hidden="true">
+  <h2 id="titulo-anadir">Añadir una línea</h2>
   <p class="pista">Pega el enlace de la EMT o el número de parada</p>
   <input class="campo" id="campo" type="text" inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false"
-         placeholder="https://www.emtmadrid.es/… o 1574" aria-describedby="estado">
-  <p class="estado" id="estado"></p>
+         placeholder="https://www.emtmadrid.es/… o 1574" aria-describedby="estado-anadir">
+  <p class="estado" id="estado-anadir"></p>
   <div class="chips" id="chips"></div>
   <div class="mias" id="mias" hidden>
     <h3>Líneas que has añadido</h3>
     <ul id="lista-mias"></ul>
   </div>
-  <button class="cerrar" id="cerrar" type="button">Cerrar</button>
+  <button class="cerrar" id="cerrar-anadir" type="button">Cerrar</button>
+</section>
+
+<section class="hoja" id="hoja-aviso" role="dialog" aria-modal="true" aria-labelledby="titulo-aviso" aria-hidden="true">
+  <h2 id="titulo-aviso">Avisarme antes de que llegue</h2>
+  <p class="pista">Te suena el móvil cuando tu bus está cerca de verdad</p>
+
+  <label class="interruptor">
+    <span>Avisos activados</span>
+    <span class="palanca"><input type="checkbox" id="activo"><i></i></span>
+  </label>
+
+  <h3>Qué línea vigilo</h3>
+  <div class="chips" id="chips-linea"></div>
+
+  <h3>Avisarme cuando falten</h3>
+  <div class="chips" id="chips-antelacion"></div>
+
+  <h3>Días y hora a la que lo coges</h3>
+  <div class="dias" id="dias"></div>
+
+  <p class="estado" id="estado-aviso"></p>
+
+  <div class="fila-botones">
+    <button class="secundario" id="probar" type="button">Probar</button>
+    <button class="secundario principal" id="guardar" type="button">Guardar</button>
+  </div>
+  <button class="cerrar" id="cerrar-aviso" type="button">Cerrar</button>
 </section>
 
 <script>
   (function () {
     var LLAVE = 'paradas-emt:extras';
+    var LLAVE_AVISO = 'paradas-emt:aviso';
+    var LLAVE_ID = 'paradas-emt:id';
+    var DIAS = [
+      { n: 1, nombre: 'Lun' }, { n: 2, nombre: 'Mar' }, { n: 3, nombre: 'Mié' },
+      { n: 4, nombre: 'Jue' }, { n: 5, nombre: 'Vie' }, { n: 6, nombre: 'Sáb' }, { n: 0, nombre: 'Dom' }
+    ];
+
     var columna = document.getElementById('columna');
     var velo = document.getElementById('velo');
-    var hoja = document.getElementById('hoja');
+    var hojaAnadir = document.getElementById('hoja-anadir');
+    var hojaAviso = document.getElementById('hoja-aviso');
     var campo = document.getElementById('campo');
-    var estado = document.getElementById('estado');
+    var estadoAnadir = document.getElementById('estado-anadir');
+    var estadoAviso = document.getElementById('estado-aviso');
     var chips = document.getElementById('chips');
     var cajaMias = document.getElementById('mias');
     var listaMias = document.getElementById('lista-mias');
+    var activo = document.getElementById('activo');
+    var chipsLinea = document.getElementById('chips-linea');
+    var chipsAntelacion = document.getElementById('chips-antelacion');
+    var cajaDias = document.getElementById('dias');
     var tarjetas = [];
     var ultima = 0;
 
-    function extras() {
-      try {
-        var crudo = localStorage.getItem(LLAVE);
-        var v = crudo ? JSON.parse(crudo) : [];
-        return Array.isArray(v) ? v : [];
-      } catch (e) { return []; }
+    function leeLS(llave, pordefecto) {
+      try { var v = localStorage.getItem(llave); return v ? JSON.parse(v) : pordefecto; }
+      catch (e) { return pordefecto; }
     }
-    function guardar(v) {
-      try { localStorage.setItem(LLAVE, JSON.stringify(v)); } catch (e) {}
+    function escribeLS(llave, valor) {
+      try { localStorage.setItem(llave, JSON.stringify(valor)); } catch (e) {}
     }
+    function extras() { var v = leeLS(LLAVE, []); return Array.isArray(v) ? v : []; }
     function todas() { return window.FIJAS.concat(extras()); }
+
+    function miId() {
+      var id = null;
+      try { id = localStorage.getItem(LLAVE_ID); } catch (e) {}
+      if (!id) {
+        id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+        try { localStorage.setItem(LLAVE_ID, id); } catch (e) {}
+      }
+      return id;
+    }
+
+    function ajustesPorDefecto() {
+      var p = window.FIJAS[0];
+      return {
+        activo: false, linea: p.linea, parada: p.parada, calle: p.calle, antelacion: 10,
+        dias: { '1': '06:30', '2': '06:30', '3': '06:30', '4': '06:30', '5': '06:30' }
+      };
+    }
+    function ajustes() {
+      var a = leeLS(LLAVE_AVISO, null);
+      return a && a.dias ? a : ajustesPorDefecto();
+    }
 
     // ---------- lectura del panel de la EMT ----------
     function minutos(texto) {
@@ -413,16 +408,15 @@
       var h2 = doc.querySelectorAll('h2');
       var calle = h2.length > 1 ? h2[1].textContent.trim() : '';
       var nombre = h2.length ? h2[0].textContent.replace(/^Parada:\s*\d+\s*/, '').trim() : '';
-      return { filas: filas, calle: calle || nombre, nombre: nombre };
+      return { filas: filas, calle: calle || nombre };
     }
     function tiemposDe(datos, linea) {
-      return datos.filas
-        .filter(function (f) { return f.linea === linea; })
+      return datos.filas.filter(function (f) { return f.linea === linea; })
         .map(function (f) { return f.min; })
         .sort(function (a, b) { return a - b; });
     }
 
-    // ---------- pintado ----------
+    // ---------- pintado de la columna ----------
     function etiqueta(min) {
       if (min === 0) return 'llegando';
       if (min > 60) return '+60 min';
@@ -456,31 +450,50 @@
 
     function render(nuevaClave) {
       var lista = todas();
+      var a = ajustes();
       columna.textContent = '';
       tarjetas = [];
       columna.style.gridTemplateRows = 'repeat(' + lista.length + ', minmax(5.2rem, 1fr)) auto';
 
       var frag = document.createDocumentFragment();
       lista.forEach(function (p) {
-        var a = document.createElement('a');
-        a.className = 'linea cargando';
-        if (nuevaClave && p.linea + '@' + p.parada === nuevaClave) a.classList.add('entrando');
-        a.href = window.URL_PARADA(p.parada);
-        a.innerHTML =
-          '<span class="numero"></span><span class="calle"></span><span class="tiempos"></span>';
-        a.querySelector('.numero').textContent = p.linea;
-        a.querySelector('.calle').textContent = p.calle;
-        frag.appendChild(a);
-        tarjetas.push({ info: p, nodo: a, tiempos: a.querySelector('.tiempos') });
+        var el = document.createElement('a');
+        el.className = 'linea cargando';
+        if (nuevaClave && p.linea + '@' + p.parada === nuevaClave) el.classList.add('entrando');
+        el.href = window.URL_PARADA(p.parada);
+        el.target = '_blank';
+        el.rel = 'noopener';
+        el.innerHTML = '<span class="numero"></span><span class="calle"></span><span class="tiempos"></span>';
+        el.querySelector('.numero').textContent = p.linea;
+        el.querySelector('.calle').textContent = p.calle;
+        if (a.activo && a.linea === p.linea && a.parada === p.parada) {
+          var c = document.createElement('span');
+          c.className = 'campana';
+          c.textContent = '⏰';
+          c.setAttribute('aria-label', 'Con aviso activado');
+          el.appendChild(c);
+        }
+        frag.appendChild(el);
+        tarjetas.push({ info: p, nodo: el, tiempos: el.querySelector('.tiempos') });
       });
 
-      var boton = document.createElement('button');
-      boton.className = 'anadir';
-      boton.type = 'button';
-      boton.setAttribute('aria-label', 'Añadir una línea');
-      boton.textContent = '+';
-      boton.addEventListener('click', abrir);
-      frag.appendChild(boton);
+      var acciones = document.createElement('div');
+      acciones.className = 'acciones';
+      var mas = document.createElement('button');
+      mas.className = 'boton-borde mas';
+      mas.type = 'button';
+      mas.setAttribute('aria-label', 'Añadir una línea');
+      mas.textContent = '+';
+      mas.addEventListener('click', abrirAnadir);
+      var reloj = document.createElement('button');
+      reloj.className = 'boton-borde reloj' + (a.activo ? ' encendido' : '');
+      reloj.type = 'button';
+      reloj.setAttribute('aria-label', 'Configurar el aviso de bus');
+      reloj.textContent = '⏰';
+      reloj.addEventListener('click', abrirAviso);
+      acciones.appendChild(mas);
+      acciones.appendChild(reloj);
+      frag.appendChild(acciones);
       columna.appendChild(frag);
 
       ultima = Date.now();
@@ -488,7 +501,6 @@
         var pre = window.PRECARGA[t.info.parada];
         resolver(t, pre ? Promise.resolve(pre) : window.pedir(t.info.parada));
       });
-      // La precarga solo sirve para la primera pintada.
       window.PRECARGA = {};
     }
 
@@ -500,25 +512,36 @@
       });
     }
 
-    // ---------- hoja de anadir ----------
+    // ---------- hojas ----------
+    var abierta = null;
+    function abrirHoja(h) {
+      abierta = h;
+      velo.classList.add('abierto');
+      h.classList.add('abierta');
+      h.setAttribute('aria-hidden', 'false');
+    }
+    function cerrarHoja() {
+      if (!abierta) return;
+      velo.classList.remove('abierto');
+      abierta.classList.remove('abierta');
+      abierta.setAttribute('aria-hidden', 'true');
+      abierta = null;
+    }
+    velo.addEventListener('click', cerrarHoja);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrarHoja(); });
+    document.getElementById('cerrar-anadir').addEventListener('click', cerrarHoja);
+    document.getElementById('cerrar-aviso').addEventListener('click', cerrarHoja);
+
+    // ---------- anadir lineas ----------
     var buscadas = {};
     var ultimoTexto = '';
     var temporizador = null;
 
-    function abrir() {
+    function abrirAnadir() {
       pintaMias();
-      velo.classList.add('abierto');
-      hoja.classList.add('abierta');
-      hoja.setAttribute('aria-hidden', 'false');
+      abrirHoja(hojaAnadir);
       setTimeout(function () { campo.focus(); }, 120);
     }
-    function cerrar() {
-      velo.classList.remove('abierto');
-      hoja.classList.remove('abierta');
-      hoja.setAttribute('aria-hidden', 'true');
-      campo.blur();
-    }
-
     function numeroDeParada(texto) {
       var t = (texto || '').trim();
       if (!t) return null;
@@ -527,26 +550,24 @@
       if (/^\d{1,5}$/.test(t)) return t;
       return null;
     }
-
-    function di(texto, esError) {
-      estado.textContent = texto;
-      estado.classList.toggle('error', !!esError);
+    function di(caja, texto, esError) {
+      caja.textContent = texto;
+      caja.classList.toggle('error', !!esError);
     }
-
     function buscar(parada) {
       chips.textContent = '';
-      di('Buscando la parada ' + parada + '…', false);
+      di(estadoAnadir, 'Buscando la parada ' + parada + '…', false);
       var p = buscadas[parada] || (buscadas[parada] = window.pedir(parada));
       p.then(function (html) {
         var datos = analizar(html);
         if (!datos.filas.length) {
-          di('La parada ' + parada + ' no da ninguna línea ahora mismo. Puede que no exista o que no pase nada a esta hora.', true);
+          di(estadoAnadir, 'La parada ' + parada + ' no da ninguna línea ahora mismo.', true);
           return;
         }
         var yaTengo = {};
         todas().forEach(function (x) { yaTengo[x.linea + '@' + x.parada] = true; });
         var vistas = {};
-        di(datos.calle ? 'Parada ' + parada + ' · ' + datos.calle : 'Parada ' + parada, false);
+        di(estadoAnadir, datos.calle ? 'Parada ' + parada + ' · ' + datos.calle : 'Parada ' + parada, false);
         datos.filas.forEach(function (f) {
           if (vistas[f.linea]) return;
           vistas[f.linea] = true;
@@ -561,36 +582,24 @@
           } else {
             b.setAttribute('aria-label', 'Añadir la línea ' + f.linea);
             b.addEventListener('click', function () {
-              anadir({ linea: f.linea, parada: parada, calle: datos.calle });
+              var v = extras();
+              v.push({ linea: f.linea, parada: parada, calle: datos.calle });
+              escribeLS(LLAVE, v);
+              cerrarHoja();
+              campo.value = '';
+              ultimoTexto = '';
+              chips.textContent = '';
+              di(estadoAnadir, '', false);
+              render(f.linea + '@' + parada);
             });
           }
           chips.appendChild(b);
         });
       }).catch(function () {
         delete buscadas[parada];
-        di('No he podido leer esa parada. Revisa el enlace o inténtalo de nuevo.', true);
+        di(estadoAnadir, 'No he podido leer esa parada. Revisa el enlace o inténtalo de nuevo.', true);
       });
     }
-
-    function anadir(p) {
-      var v = extras();
-      v.push(p);
-      guardar(v);
-      cerrar();
-      campo.value = '';
-      chips.textContent = '';
-      di('', false);
-      render(p.linea + '@' + p.parada);
-    }
-
-    function quitar(indice) {
-      var v = extras();
-      v.splice(indice, 1);
-      guardar(v);
-      pintaMias();
-      render();
-    }
-
     function pintaMias() {
       var v = extras();
       listaMias.textContent = '';
@@ -599,30 +608,43 @@
         var li = document.createElement('li');
         var etq = document.createElement('span');
         etq.className = 'etiqueta';
-        etq.innerHTML = '<small></small>';
-        etq.insertBefore(document.createTextNode('Línea ' + p.linea), etq.firstChild);
-        etq.querySelector('small').textContent = p.calle + ' · parada ' + p.parada;
+        etq.appendChild(document.createTextNode('Línea ' + p.linea));
+        var small = document.createElement('small');
+        small.textContent = p.calle + ' · parada ' + p.parada;
+        etq.appendChild(small);
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'quitar';
         b.textContent = '✕';
         b.setAttribute('aria-label', 'Quitar la línea ' + p.linea);
-        b.addEventListener('click', function () { quitar(i); });
+        b.addEventListener('click', function () {
+          var lista = extras();
+          lista.splice(i, 1);
+          escribeLS(LLAVE, lista);
+          var a = ajustes();
+          if (a.linea === p.linea && a.parada === p.parada) {
+            var base = window.FIJAS[0];
+            a.linea = base.linea; a.parada = base.parada; a.calle = base.calle;
+            escribeLS(LLAVE_AVISO, a);
+            guardarEnVigilante(a);
+          }
+          pintaMias();
+          render();
+        });
         li.appendChild(etq);
         li.appendChild(b);
         listaMias.appendChild(li);
       });
     }
-
     campo.addEventListener('input', function () {
       var texto = campo.value;
       if (texto === ultimoTexto) return;
       ultimoTexto = texto;
       clearTimeout(temporizador);
       chips.textContent = '';
-      if (!texto.trim()) { di('', false); return; }
+      if (!texto.trim()) { di(estadoAnadir, '', false); return; }
       var parada = numeroDeParada(texto);
-      if (!parada) { di('Pega un enlace de la EMT con stopnum=… o escribe solo el número de parada.', true); return; }
+      if (!parada) { di(estadoAnadir, 'Pega un enlace con stopnum=… o escribe el número de parada.', true); return; }
       temporizador = setTimeout(function () { buscar(parada); }, 250);
     });
     campo.addEventListener('keydown', function (e) {
@@ -632,10 +654,216 @@
         if (parada) buscar(parada);
       }
     });
-    document.getElementById('cerrar').addEventListener('click', cerrar);
-    velo.addEventListener('click', cerrar);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && hoja.classList.contains('abierta')) cerrar();
+
+    // ---------- avisos ----------
+    function aBytes(b64url) {
+      var b64 = (b64url + '='.repeat((4 - b64url.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+      var crudo = atob(b64);
+      var salida = new Uint8Array(crudo.length);
+      for (var i = 0; i < crudo.length; i++) salida[i] = crudo.charCodeAt(i);
+      return salida;
+    }
+    function esStandalone() {
+      return window.navigator.standalone === true ||
+        (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+    function esIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+    function puedeAvisar() {
+      return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    }
+
+    function guardarEnVigilante(a, suscripcion) {
+      var cuerpo = { id: miId(), ajustes: a };
+      if (suscripcion) cuerpo.suscripcion = suscripcion;
+      return fetch(window.VIGILANTE + '/registro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo)
+      }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    }
+
+    function suscribir() {
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager.getSubscription().then(function (previa) {
+          if (previa) return previa;
+          return fetch(window.VIGILANTE + '/clave')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              return reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: aBytes(d.publica)
+              });
+            });
+        });
+      }).then(function (s) { return s.toJSON(); });
+    }
+
+    function pintaAviso() {
+      var a = ajustes();
+      activo.checked = !!a.activo;
+
+      chipsLinea.textContent = '';
+      todas().forEach(function (p) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip pequeno' + (a.linea === p.linea && a.parada === p.parada ? '' : ' apagado');
+        b.textContent = p.linea;
+        b.title = p.calle;
+        b.setAttribute('aria-label', 'Vigilar la línea ' + p.linea + ' en ' + p.calle);
+        b.addEventListener('click', function () {
+          var act = ajustes();
+          act.linea = p.linea; act.parada = p.parada; act.calle = p.calle;
+          escribeLS(LLAVE_AVISO, act);
+          pintaAviso();
+        });
+        chipsLinea.appendChild(b);
+      });
+
+      chipsAntelacion.textContent = '';
+      [5, 10, 15, 20].forEach(function (m) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip pequeno' + (a.antelacion === m ? '' : ' apagado');
+        b.textContent = m + ' min';
+        b.addEventListener('click', function () {
+          var act = ajustes();
+          act.antelacion = m;
+          escribeLS(LLAVE_AVISO, act);
+          pintaAviso();
+        });
+        chipsAntelacion.appendChild(b);
+      });
+
+      cajaDias.textContent = '';
+      DIAS.forEach(function (d) {
+        var hora = a.dias[String(d.n)] || null;
+        var fila = document.createElement('div');
+        fila.className = 'dia' + (hora ? '' : ' apagado');
+
+        var marca = document.createElement('label');
+        marca.className = 'palanca';
+        marca.style.width = '2.4rem';
+        marca.style.height = '1.4rem';
+        var chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.checked = !!hora;
+        chk.setAttribute('aria-label', d.nombre);
+        var pint = document.createElement('i');
+        marca.appendChild(chk);
+        marca.appendChild(pint);
+
+        var nombre = document.createElement('span');
+        nombre.className = 'nombre';
+        nombre.textContent = d.nombre;
+
+        var reloj = document.createElement('input');
+        reloj.type = 'time';
+        reloj.value = hora || '06:30';
+        reloj.disabled = !hora;
+        reloj.setAttribute('aria-label', 'Hora del ' + d.nombre);
+
+        chk.addEventListener('change', function () {
+          var act = ajustes();
+          if (chk.checked) act.dias[String(d.n)] = reloj.value || '06:30';
+          else delete act.dias[String(d.n)];
+          escribeLS(LLAVE_AVISO, act);
+          pintaAviso();
+        });
+        reloj.addEventListener('change', function () {
+          var act = ajustes();
+          act.dias[String(d.n)] = reloj.value;
+          escribeLS(LLAVE_AVISO, act);
+        });
+
+        fila.appendChild(nombre);
+        fila.appendChild(reloj);
+        fila.appendChild(marca);
+        cajaDias.appendChild(fila);
+      });
+    }
+
+    function abrirAviso() {
+      pintaAviso();
+      var a = ajustes();
+      if (!puedeAvisar()) {
+        di(estadoAviso, 'Este navegador no admite avisos. En el iPhone tienes que abrirla desde el icono de la pantalla de inicio.', true);
+      } else if (esIOS() && !esStandalone()) {
+        di(estadoAviso, 'Para que suene el móvil, añade la app a la pantalla de inicio y ábrela desde ahí.', true);
+      } else if (Notification.permission === 'denied') {
+        di(estadoAviso, 'Tienes las notificaciones bloqueadas para esta app. Actívalas en los ajustes del móvil.', true);
+      } else if (a.activo && Notification.permission === 'granted') {
+        di(estadoAviso, 'Todo listo. Te avisaré cuando tu bus esté a ' + a.antelacion + ' min.', false);
+      } else {
+        di(estadoAviso, '', false);
+      }
+      abrirHoja(hojaAviso);
+    }
+
+    activo.addEventListener('change', function () {
+      var a = ajustes();
+      a.activo = activo.checked;
+      escribeLS(LLAVE_AVISO, a);
+      if (!a.activo) { di(estadoAviso, 'Avisos apagados.', false); return; }
+      if (!puedeAvisar() || (esIOS() && !esStandalone())) {
+        activo.checked = false;
+        a.activo = false;
+        escribeLS(LLAVE_AVISO, a);
+        di(estadoAviso, 'Antes tienes que abrir la app desde el icono de la pantalla de inicio.', true);
+        return;
+      }
+      di(estadoAviso, 'Pidiendo permiso…', false);
+      Notification.requestPermission().then(function (permiso) {
+        if (permiso !== 'granted') {
+          activo.checked = false;
+          var act = ajustes();
+          act.activo = false;
+          escribeLS(LLAVE_AVISO, act);
+          di(estadoAviso, 'Sin permiso de notificaciones no puedo avisarte.', true);
+          return;
+        }
+        di(estadoAviso, 'Conectando con el vigilante…', false);
+        return suscribir().then(function (s) {
+          return guardarEnVigilante(ajustes(), s);
+        }).then(function () {
+          di(estadoAviso, 'Listo. Pulsa «Probar» para comprobarlo.', false);
+          render();
+        });
+      }).catch(function (e) {
+        di(estadoAviso, 'No he podido activarlo: ' + (e && e.message ? e.message : e), true);
+      });
+    });
+
+    document.getElementById('guardar').addEventListener('click', function () {
+      var a = ajustes();
+      di(estadoAviso, 'Guardando…', false);
+      var paso = (a.activo && puedeAvisar() && Notification.permission === 'granted')
+        ? suscribir() : Promise.resolve(null);
+      paso.then(function (s) { return guardarEnVigilante(a, s); })
+        .then(function () {
+          di(estadoAviso, 'Guardado.', false);
+          render();
+          setTimeout(cerrarHoja, 600);
+        })
+        .catch(function (e) {
+          di(estadoAviso, 'No he podido guardar: ' + (e && e.message ? e.message : e), true);
+        });
+    });
+
+    document.getElementById('probar').addEventListener('click', function () {
+      di(estadoAviso, 'Mandando un aviso de prueba…', false);
+      fetch(window.VIGILANTE + '/probar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: miId() })
+      }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (res.ok) di(estadoAviso, 'Mandado. Debería llegarte en unos segundos.', false);
+          else di(estadoAviso, 'No ha salido: ' + (res.d.error || res.d.detalle || res.d.estado), true);
+        })
+        .catch(function (e) { di(estadoAviso, 'No he podido mandarlo: ' + e.message, true); });
     });
 
     // ---------- arranque ----------

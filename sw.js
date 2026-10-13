@@ -1,7 +1,6 @@
-// Cachea la propia app para que abra sin cobertura.
-// Los tiempos de la EMT nunca se cachean: siempre van a la red.
-const CACHE = 'paradas-emt-v4';
-const SHELL = ['./', './index.html', './icono.png'];
+// Cachea la app para que abra sin cobertura, y recibe los avisos de bus.
+const CACHE = 'paradas-emt-v5';
+const SHELL = ['./', './index.html', './icono.png', './manifest.json'];
 const ESPERA_RED = 2000;
 
 self.addEventListener('install', (e) => {
@@ -33,7 +32,6 @@ self.addEventListener('fetch', (e) => {
 
   if (esPagina) {
     // La pagina: red primero, para no quedarnos con una version vieja.
-    // Si tarda mas de 2 s o no hay cobertura, tiramos de la copia guardada.
     e.respondWith(
       new Promise((resolve) => {
         let resuelto = false;
@@ -42,7 +40,6 @@ self.addEventListener('fetch', (e) => {
           if (resuelto) return;
           conCache().then((c) => { if (c && !resuelto) { resuelto = true; resolve(c); } });
         }, ESPERA_RED);
-
         fetch(e.request)
           .then((r) => {
             guardar(e.request, r);
@@ -62,11 +59,39 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // El resto (icono): de la cache al instante, refrescando por detras.
   e.respondWith(
     caches.match(e.request).then((cacheada) => {
       const red = fetch(e.request).then((r) => guardar(e.request, r)).catch(() => cacheada);
       return cacheada || red;
+    })
+  );
+});
+
+// ---------- avisos de bus ----------
+self.addEventListener('push', (e) => {
+  let datos = { titulo: 'Tu bus está cerca', cuerpo: '', url: './' };
+  try { if (e.data) datos = Object.assign(datos, e.data.json()); } catch (err) {}
+  e.waitUntil(
+    self.registration.showNotification(datos.titulo, {
+      body: datos.cuerpo,
+      icon: './icono-192.png',
+      badge: './icono-192.png',
+      tag: 'bus',
+      renotify: true,
+      data: { url: datos.url }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const destino = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ventanas) => {
+      for (const v of ventanas) {
+        if (v.url.indexOf(self.location.origin) === 0 && 'focus' in v) return v.focus();
+      }
+      return self.clients.openWindow(destino);
     })
   );
 });
