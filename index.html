@@ -111,20 +111,24 @@
     from { opacity: 0; transform: translateY(14px) scale(0.98); }
     to   { opacity: 1; transform: none; }
   }
-  .campana {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.7rem;
-    font-size: 0.95rem;
-    line-height: 1;
-    color: var(--tenue);
+  .icono-reloj {
+    width: 1em; height: 1em; flex: none;
+    vertical-align: -0.14em;
+    stroke: currentColor; fill: none;
+    stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round;
   }
+  .programado {
+    display: inline-flex; align-items: center; gap: 0.3em;
+    margin-left: 0.5em; white-space: nowrap;
+  }
+  .boton-borde .icono-reloj { width: 1.45rem; height: 1.45rem; stroke-width: 2; }
 
   .numero { font-size: clamp(2.1rem, 8.5vh, 3.9rem); line-height: 1; font-variant-numeric: tabular-nums; }
   .calle {
     font-size: clamp(0.72rem, 1.9vh, 0.95rem);
-    line-height: 1.2; letter-spacing: 0.07em; text-transform: uppercase;
+    line-height: 1.25; letter-spacing: 0.07em; text-transform: uppercase;
     color: var(--tenue); text-align: center; text-wrap: balance;
+    padding-inline: 0.5rem;
   }
   .tiempos {
     margin-top: 0.35em; min-height: 1.5em;
@@ -197,7 +201,7 @@
   .estado { margin: 0.75rem 0 0; font-size: 0.95rem; line-height: 1.35; min-height: 1.3em; }
   .estado.error { color: #b3261e; }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.1rem; }
   .chip {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
     font-size: 1.25rem; line-height: 1; padding: 0.5rem 0.9rem; border: 0; border-radius: 10px;
@@ -265,41 +269,59 @@
   /* Interruptor */
   .interruptor {
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    background: var(--azul-palido); border-radius: 12px; padding: 0.7rem 0.9rem;
+    background: var(--azul-palido); border-radius: 12px;
+    padding: 0.7rem 0.7rem 0.7rem 0.9rem; min-height: 3.4rem;
   }
   .interruptor span { font-size: 1.05rem; }
-  .palanca { position: relative; width: 3.3rem; height: 1.9rem; flex: none; }
-  .palanca input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .palanca {
+    --alto: 1.9rem;
+    --ancho: 3.3rem;
+    --borde: 0.2rem;
+    position: relative;
+    width: var(--ancho); height: var(--alto); flex: none;
+  }
+  .palanca.pequena { --alto: 1.6rem; --ancho: 2.8rem; --borde: 0.17rem; }
+  .palanca input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
   .palanca i {
-    position: absolute; inset: 0; border-radius: 999px;
+    position: absolute; inset: 0; border-radius: 999px; display: block;
     background: rgba(0, 100, 180, 0.28); transition: background 160ms ease;
   }
   .palanca i::after {
-    content: ''; position: absolute; top: 0.2rem; left: 0.2rem;
-    width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #fff;
+    content: ''; position: absolute; top: var(--borde); left: var(--borde);
+    width: calc(var(--alto) - var(--borde) * 2);
+    height: calc(var(--alto) - var(--borde) * 2);
+    border-radius: 50%; background: #fff;
     transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow: 0 1px 3px rgba(0, 40, 75, 0.3);
   }
   .palanca input:checked + i { background: var(--azul); }
-  .palanca input:checked + i::after { transform: translateX(1.4rem); }
+  .palanca input:checked + i::after { transform: translateX(calc(var(--ancho) - var(--alto))); }
   .palanca input:focus-visible + i { outline: 3px solid var(--azul); outline-offset: 3px; }
 
   /* Dias y horas */
-  .dias { display: flex; flex-direction: column; gap: 0.4rem; }
+  .dias { display: flex; flex-direction: column; gap: 0.45rem; }
   .dia {
-    display: grid; grid-template-columns: 2.6rem 1fr auto; align-items: center; gap: 0.6rem;
-    background: var(--azul-palido); border-radius: 10px; padding: 0.4rem 0.5rem 0.4rem 0.6rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    background: var(--azul-palido); border-radius: 10px;
+    padding: 0.45rem 0.7rem;
+    min-height: 3rem;
   }
-  .dia .nombre { font-size: 1.05rem; letter-spacing: 0.05em; }
-  .dia.apagado { opacity: 0.45; }
+  .dia .nombre {
+    width: 2.5rem; flex: none;
+    font-size: 1.05rem; letter-spacing: 0.04em;
+  }
+  .dia.apagado .nombre, .dia.apagado input[type="time"] { opacity: 0.45; }
   .dia input[type="time"] {
     font: inherit; font-size: 16px; font-weight: 700; color: var(--azul);
     background: var(--fondo); border: 2px solid rgba(0, 100, 180, 0.25);
-    border-radius: 8px; padding: 0.3rem 0.45rem; width: 100%;
+    border-radius: 9px; padding: 0.35rem 0.5rem;
+    width: 6.4rem; flex: none; text-align: center;
+    font-variant-numeric: tabular-nums;
   }
-  .dia input[type="time"]:disabled { opacity: 0.5; }
+  .dia .palanca { margin-left: auto; }
 
-  .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 1rem; }
+  .fila-botones { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-top: 0.9rem; }
+  .cerrar { margin-top: 0.6rem; }
   .cerrar, .secundario {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
     width: 100%; padding: 0.8rem; border: 0; border-radius: 11px;
@@ -383,6 +405,9 @@
       { n: 4, nombre: 'Jue' }, { n: 5, nombre: 'Vie' }, { n: 6, nombre: 'Sáb' }, { n: 0, nombre: 'Dom' }
     ];
 
+    var ICONO_RELOJ =
+      '<svg class="icono-reloj" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="9"></circle><path d="M12 6.6V12l3.4 2.1"></path></svg>';
     var columna = document.getElementById('columna');
     var velo = document.getElementById('velo');
     var hojaAnadir = document.getElementById('hoja-anadir');
@@ -512,13 +537,16 @@
         el.rel = 'noopener';
         el.innerHTML = '<span class="numero"></span><span class="calle"></span><span class="tiempos"></span>';
         el.querySelector('.numero').textContent = p.linea;
-        el.querySelector('.calle').textContent = p.calle;
+        var cajaCalle = el.querySelector('.calle');
+        cajaCalle.textContent = p.calle;
         if (a.activo && a.linea === p.linea && a.parada === p.parada) {
-          var c = document.createElement('span');
-          c.className = 'campana';
-          c.textContent = '⏰';
-          c.setAttribute('aria-label', 'Con aviso activado');
-          el.appendChild(c);
+          var hoy = a.dias[String(new Date().getDay())] || null;
+          var marca = document.createElement('span');
+          marca.className = 'programado';
+          marca.innerHTML = ICONO_RELOJ;
+          if (hoy) marca.appendChild(document.createTextNode(hoy));
+          marca.setAttribute('aria-label', hoy ? 'Aviso programado hoy a las ' + hoy : 'Aviso activado');
+          cajaCalle.appendChild(marca);
         }
         frag.appendChild(el);
         tarjetas.push({ info: p, nodo: el, tiempos: el.querySelector('.tiempos') });
@@ -536,7 +564,7 @@
       reloj.className = 'boton-borde reloj' + (a.activo ? ' encendido' : '');
       reloj.type = 'button';
       reloj.setAttribute('aria-label', 'Configurar el aviso de bus');
-      reloj.textContent = '⏰';
+      reloj.innerHTML = ICONO_RELOJ;
       reloj.addEventListener('click', abrirAviso);
       acciones.appendChild(mas);
       acciones.appendChild(reloj);
@@ -789,9 +817,7 @@
         fila.className = 'dia' + (hora ? '' : ' apagado');
 
         var marca = document.createElement('label');
-        marca.className = 'palanca';
-        marca.style.width = '2.4rem';
-        marca.style.height = '1.4rem';
+        marca.className = 'palanca pequena';
         var chk = document.createElement('input');
         chk.type = 'checkbox';
         chk.checked = !!hora;
@@ -865,7 +891,22 @@
       } else if (Notification.permission === 'denied') {
         di(estadoAviso, 'Tienes las notificaciones bloqueadas para esta app. Actívalas en los ajustes del móvil.', true);
       } else if (a.activo && Notification.permission === 'granted') {
-        di(estadoAviso, 'Todo listo. Te avisaré cuando tu bus esté a ' + a.antelacion + ' min.', false);
+        di(estadoAviso, 'Comprobando el alta de este móvil…', false);
+        fetch(window.VIGILANTE + '/registro?id=' + encodeURIComponent(miId()))
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (d && d.suscripcion) {
+              di(estadoAviso, 'Todo listo. Te avisaré cuando al ' + a.linea + ' le falten ' + a.antelacion + ' min.', false);
+              return;
+            }
+            di(estadoAviso, 'Dando de alta este móvil…', false);
+            return suscribir()
+              .then(function (s) { return guardarEnVigilante(ajustes(), s); })
+              .then(function () { di(estadoAviso, 'Listo. Pulsa «Probar» para comprobarlo.', false); });
+          })
+          .catch(function () {
+            di(estadoAviso, 'No he podido hablar con el vigilante. Revisa la conexión.', true);
+          });
       } else {
         di(estadoAviso, '', false);
       }
@@ -923,6 +964,10 @@
     });
 
     document.getElementById('probar').addEventListener('click', function () {
+      if (!activo.checked) {
+        di(estadoAviso, 'Enciende antes «Avisos activados», arriba del todo.', true);
+        return;
+      }
       di(estadoAviso, 'Mandando un aviso de prueba…', false);
       fetch(window.VIGILANTE + '/probar', {
         method: 'POST',
@@ -930,8 +975,12 @@
         body: JSON.stringify({ id: miId() })
       }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
-          if (res.ok) di(estadoAviso, 'Mandado. Debería llegarte en unos segundos.', false);
-          else di(estadoAviso, 'No ha salido: ' + (res.d.error || res.d.detalle || res.d.estado), true);
+          if (res.ok) { di(estadoAviso, 'Mandado. Debería llegarte en unos segundos.', false); return; }
+          if (res.d && res.d.error === 'sin suscripción') {
+            di(estadoAviso, 'Este móvil aún no está dado de alta. Apaga y vuelve a encender «Avisos activados».', true);
+            return;
+          }
+          di(estadoAviso, 'No ha salido: ' + (res.d.error || res.d.detalle || res.d.estado), true);
         })
         .catch(function (e) { di(estadoAviso, 'No he podido mandarlo: ' + e.message, true); });
     });
