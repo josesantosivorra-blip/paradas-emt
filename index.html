@@ -97,20 +97,26 @@
   .grupo { display: flex; flex-direction: column; gap: 10px; }
   .cabecera-grupo {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
-    display: flex; align-items: center; gap: 0.5rem; width: 100%;
-    border: 0; background: transparent; color: var(--azul);
-    padding: 0.3rem 0.3rem 0.1rem;
-    font-size: 0.84rem; letter-spacing: 0.09em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 0.6rem; width: 100%;
+    border: 0; border-radius: 12px;
+    background: var(--azul-palido); color: var(--azul);
+    padding: 0.85rem 1rem;
+    font-size: 1.25rem; letter-spacing: 0.05em; text-transform: uppercase;
+    transition: background 140ms ease;
   }
-  .cabecera-grupo .cuenta { color: rgba(0, 100, 180, 0.5); }
+  .cabecera-grupo:active { background: rgba(0, 100, 180, 0.18); }
+  .cabecera-grupo .cuenta {
+    color: rgba(0, 100, 180, 0.55); font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
   .cabecera-grupo .flecha {
-    margin-left: auto; width: 0.6rem; height: 0.6rem; margin-top: -0.25rem;
-    border-right: 2.5px solid rgba(0, 100, 180, 0.55);
-    border-bottom: 2.5px solid rgba(0, 100, 180, 0.55);
+    margin-left: auto; width: 0.78rem; height: 0.78rem; margin-top: -0.35rem;
+    border-right: 3px solid rgba(0, 100, 180, 0.6);
+    border-bottom: 3px solid rgba(0, 100, 180, 0.6);
     transform: rotate(45deg);
-    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
-  .grupo.cerrado .flecha { transform: rotate(-135deg); margin-top: 0.1rem; }
+  .grupo.cerrado .flecha { transform: rotate(-135deg); margin-top: 0.15rem; }
   .contenido-grupo { display: flex; flex-direction: column; gap: 10px; }
   .grupo.cerrado .contenido-grupo { display: none; }
   .vacio {
@@ -141,6 +147,7 @@
     transition: background 120ms ease, transform 120ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .linea:active { transform: scale(0.975); background: var(--azul-oscuro); }
+  .linea.coloreada:active { filter: brightness(0.92); }
   .linea:focus-visible { outline: 4px solid var(--azul-oscuro); outline-offset: 3px; }
   @media (hover: hover) { .linea:hover { background: var(--azul-oscuro); } }
   .linea.entrando { animation: entra 320ms cubic-bezier(0.22, 1, 0.36, 1); }
@@ -189,7 +196,7 @@
 
   .cargando::after {
     content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: 40%;
-    background: rgba(255, 255, 255, 0.5); border-radius: 3px;
+    background: currentColor; opacity: 0.5; border-radius: 3px;
     animation: avanza 1100ms cubic-bezier(0.45, 0, 0.55, 1) infinite;
   }
   @keyframes avanza { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
@@ -963,6 +970,27 @@
     function grupoCerrado(modo) { return leeLS('paradas-emt:cerrado:' + modo, false) === true; }
     function guardaGrupoCerrado(modo, v) { escribeLS('paradas-emt:cerrado:' + modo, !!v); }
 
+    // Colores oficiales de cada linea, sacados del propio CRTM (GetLines.php).
+    var COLORES_METRO = {"1":"#2DBEF0","2":"#ED1C24","3":"#FFD000","4":"#B65518","5":"#8FD400","6":"#98989B","7":"#EE7518","8":"#EC82B1","9":"#A60084","10":"#005AA9","11":"#009B3A","12":"#A49800","R":"#FFFFFF","ML1":"#3A7DDA","ML2":"#A60084","ML3":"#ED1C24"};
+
+    // Sobre amarillo o blanco el texto blanco no se lee: elegimos segun el brillo.
+    function textoSobre(hex) {
+      var h = String(hex || '').replace('#', '');
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      if (h.length !== 6) return '#ffffff';
+      function canal(x) {
+        var v = parseInt(x, 16) / 255;
+        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      }
+      var L = 0.2126 * canal(h.slice(0, 2)) + 0.7152 * canal(h.slice(2, 4)) + 0.0722 * canal(h.slice(4, 6));
+      return L > 0.45 ? '#13293d' : '#ffffff';
+    }
+    function conAlfa(hex, a) {
+      var h = String(hex).replace('#', '');
+      return 'rgba(' + parseInt(h.slice(0, 2), 16) + ',' + parseInt(h.slice(2, 4), 16) + ',' +
+        parseInt(h.slice(4, 6), 16) + ',' + a + ')';
+    }
+
     function tarjetaDeLinea(p, nuevaClave) {
       var clave = claveDe(p);
       var el = document.createElement('a');
@@ -979,6 +1007,19 @@
         '<span class="tiempos"></span>';
       el.querySelector('.numero').textContent = p.linea;
       el.querySelector('.texto-calle').textContent = p.calle;
+
+      // En metro, cada linea con su color real.
+      var color = esMetro(p) ? COLORES_METRO[p.linea] : null;
+      if (color) {
+        var texto = textoSobre(color);
+        el.classList.add('coloreada');
+        el.style.background = color;
+        el.style.color = texto;
+        el.style.setProperty('--tenue', conAlfa(texto, 0.78));
+        el.style.setProperty('--muy-tenue', conAlfa(texto, 0.5));
+        // Una linea casi blanca (el Ramal) necesita contorno para no desaparecer.
+        if (texto !== '#ffffff') el.style.boxShadow = 'inset 0 0 0 2px ' + conAlfa(texto, 0.18);
+      }
       if (p.destino) {
         var d = document.createElement('span');
         d.className = 'destino';
