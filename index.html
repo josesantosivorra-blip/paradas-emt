@@ -95,28 +95,36 @@
 
   /* ---------- grupos (autobus / metro) ---------- */
   .grupo { display: flex; flex-direction: column; gap: 10px; }
+  /* Cerrado ocupa pantalla y se ve de lejos; abierto se encoge para dejar sitio. */
   .cabecera-grupo {
     appearance: none; -webkit-appearance: none; font: inherit; cursor: pointer;
     display: flex; align-items: center; gap: 0.6rem; width: 100%;
     border: 0; border-radius: 12px;
-    background: var(--azul-palido); color: var(--azul);
-    padding: 0.85rem 1rem;
-    font-size: 1.25rem; letter-spacing: 0.05em; text-transform: uppercase;
-    transition: background 140ms ease;
+    background: var(--color-grupo, var(--azul)); color: #fff;
+    padding: 0.6rem 1rem;
+    font-size: 1.05rem; letter-spacing: 0.06em; text-transform: uppercase;
+    transition: padding 260ms cubic-bezier(0.22, 1, 0.36, 1),
+                font-size 260ms cubic-bezier(0.22, 1, 0.36, 1),
+                filter 140ms ease;
   }
-  .cabecera-grupo:active { background: rgba(0, 100, 180, 0.18); }
-  .cabecera-grupo .cuenta {
-    color: rgba(0, 100, 180, 0.55); font-size: 0.95rem;
-    font-variant-numeric: tabular-nums;
+  .grupo.cerrado .cabecera-grupo {
+    padding: 2.2rem 1rem;
+    font-size: 2.4rem;
+    letter-spacing: 0.04em;
   }
+  .cabecera-grupo:active { filter: brightness(0.92); }
   .cabecera-grupo .flecha {
-    margin-left: auto; width: 0.78rem; height: 0.78rem; margin-top: -0.35rem;
-    border-right: 3px solid rgba(0, 100, 180, 0.6);
-    border-bottom: 3px solid rgba(0, 100, 180, 0.6);
+    margin-left: auto; flex: none;
+    width: 0.72rem; height: 0.72rem; margin-top: -0.3rem;
+    border-right: 3px solid rgba(255, 255, 255, 0.85);
+    border-bottom: 3px solid rgba(255, 255, 255, 0.85);
     transform: rotate(45deg);
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), width 260ms ease, height 260ms ease;
   }
-  .grupo.cerrado .flecha { transform: rotate(-135deg); margin-top: 0.15rem; }
+  .grupo.cerrado .flecha {
+    transform: rotate(-135deg); margin-top: 0.35rem;
+    width: 1.05rem; height: 1.05rem;
+  }
   .contenido-grupo { display: flex; flex-direction: column; gap: 10px; }
   .grupo.cerrado .contenido-grupo { display: none; }
   .vacio {
@@ -615,6 +623,9 @@
     var chipsLinea = document.getElementById('chips-linea');
     var cajaPanel = document.getElementById('caja-panel');
     var pistaLinea = document.getElementById('pista-linea');
+    var avisoBus = document.getElementById('aviso-bus');
+    var avisoMetro = document.getElementById('aviso-metro');
+    var modoAviso = 'bus';
     var banner = document.getElementById('banner');
 
     var tarjetas = [];
@@ -963,9 +974,10 @@
       if (typeof pintaChips === 'function') pintaChips();
     }
 
+    // El rojo del metro sale de su propio logo; el azul es el de la EMT.
     var GRUPOS = [
-      { modo: 'bus', titulo: 'Autobús', vacio: 'Sin líneas de bus. Añade una con el +.' },
-      { modo: 'metro', titulo: 'Metro', vacio: 'Sin líneas de metro. Añade una con el +.' }
+      { modo: 'bus', titulo: 'Bus', color: '#0064b4', vacio: 'Sin líneas de bus. Añade una con el +.' },
+      { modo: 'metro', titulo: 'Metro', color: '#ED1C23', vacio: 'Sin líneas de metro. Añade una con el +.' }
     ];
     function grupoCerrado(modo) { return leeLS('paradas-emt:cerrado:' + modo, false) === true; }
     function guardaGrupoCerrado(modo, v) { escribeLS('paradas-emt:cerrado:' + modo, !!v); }
@@ -1046,9 +1058,9 @@
         cab.className = 'cabecera-grupo';
         cab.type = 'button';
         cab.setAttribute('aria-expanded', grupoCerrado(g.modo) ? 'false' : 'true');
-        cab.innerHTML = '<span></span><span class="cuenta"></span><span class="flecha" aria-hidden="true"></span>';
+        cab.style.setProperty('--color-grupo', g.color);
+        cab.innerHTML = '<span></span><span class="flecha" aria-hidden="true"></span>';
         cab.querySelector('span').textContent = g.titulo;
-        cab.querySelector('.cuenta').textContent = suyas.length;
         cab.addEventListener('click', function () {
           var cerrado = !caja.classList.contains('cerrado');
           caja.classList.toggle('cerrado', cerrado);
@@ -1462,11 +1474,35 @@
       return null;
     }
 
+    function ponModoAviso(modo) {
+      modoAviso = modo;
+      var esMet = modo === 'metro';
+      avisoMetro.classList.toggle('activa', esMet);
+      avisoBus.classList.toggle('activa', !esMet);
+      avisoMetro.setAttribute('aria-selected', esMet ? 'true' : 'false');
+      avisoBus.setAttribute('aria-selected', esMet ? 'false' : 'true');
+      // Si la linea elegida no es de este tipo, se deselecciona.
+      if (elegida) {
+        var sigue = todas().some(function (p) {
+          return claveDe(p) === elegida && esMetro(p) === esMet;
+        });
+        if (!sigue) { elegida = null; cajaPanel.textContent = ''; }
+      }
+      pistaLinea.hidden = !!elegida;
+      pintaChips();
+    }
+    avisoBus.addEventListener('click', function () { ponModoAviso('bus'); });
+    avisoMetro.addEventListener('click', function () { ponModoAviso('metro'); });
+
     function pintaChips() {
       var prog = programados();
       var pun = puntuales();
       chipsLinea.textContent = '';
-      todas().forEach(function (p) {
+      var hay = 0;
+      todas().filter(function (p) {
+        return esMetro(p) === (modoAviso === 'metro');
+      }).forEach(function (p) {
+        hay++;
         var clave = claveDe(p);
         var b = document.createElement('button');
         b.type = 'button';
@@ -1496,14 +1532,19 @@
         });
         chipsLinea.appendChild(b);
       });
+      pistaLinea.textContent = hay
+        ? 'Toca una línea para programarla.'
+        : (modoAviso === 'metro' ? 'No tienes líneas de metro guardadas.' : 'No tienes líneas de bus guardadas.');
+      if (!hay) pistaLinea.hidden = false;
     }
 
     function abrirAviso() {
       pintaBanner();
       reconciliar();
       if (!elegida) cajaPanel.textContent = '';
+      var actual = todas().filter(function (p) { return claveDe(p) === elegida; })[0];
+      ponModoAviso(actual ? (esMetro(actual) ? 'metro' : 'bus') : modoAviso);
       pistaLinea.hidden = !!elegida;
-      pintaChips();
       if (elegida) { var t = tarjetaDe(elegida); if (t) montaPanel(t); }
       abrirHoja(hojaAviso);
     }
@@ -1698,7 +1739,9 @@
     var ultimoTexto = '';
     var temporizador = null;
 
+    var modoAnadir = 'bus';
     function ponPestana(modo) {
+      modoAnadir = modo;
       var esMet = modo === 'metro';
       pestanaMetro.classList.toggle('activa', esMet);
       pestanaBus.classList.toggle('activa', !esMet);
@@ -1706,6 +1749,7 @@
       pestanaBus.setAttribute('aria-selected', esMet ? 'false' : 'true');
       panelMetro.hidden = !esMet;
       panelBus.hidden = esMet;
+      pintaMias();
       setTimeout(function () { (esMet ? campoMetro : campo).focus(); }, 80);
     }
     pestanaBus.addEventListener('click', function () { ponPestana('bus'); });
@@ -1877,7 +1921,12 @@
       });
     }
     function pintaMias() {
-      var v = todas();
+      var esMet = modoAnadir === 'metro';
+      var v = todas().filter(function (p) { return esMetro(p) === esMet; });
+      var titulo = cajaMias.querySelector('h3');
+      if (titulo) {
+        titulo.textContent = (esMet ? 'Tus líneas de metro' : 'Tus líneas de bus') + ' · toca la ✕ para quitar una';
+      }
       listaMias.textContent = '';
       cajaMias.hidden = v.length === 0;
       v.forEach(function (p, i) {
@@ -1897,7 +1946,12 @@
         b.setAttribute('aria-label', 'Quitar la línea ' + p.linea);
         b.addEventListener('click', function () {
           var lista = todas();
-          var fuera = lista.splice(i, 1)[0];
+          var donde = -1;
+          for (var k = 0; k < lista.length; k++) {
+            if (claveDe(lista[k]) === claveDe(p)) { donde = k; break; }
+          }
+          if (donde === -1) return;
+          var fuera = lista.splice(donde, 1)[0];
           guardaLineas(lista);
           if (fuera) {
             borraPrograma(claveDe(fuera));
