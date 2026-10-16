@@ -577,8 +577,12 @@
 <section class="hoja" id="hoja-aviso" role="dialog" aria-modal="true" aria-labelledby="titulo-aviso" aria-hidden="true">
   <div class="asa" aria-hidden="true"></div>
   <h2 id="titulo-aviso">Avisarme antes de que llegue</h2>
-  <p class="pista">Elige la línea que quieres vigilar</p>
+  <p class="pista">Elige el tipo y la línea que quieres vigilar</p>
   <p class="banner" id="banner" hidden></p>
+  <div class="pestanas" role="tablist">
+    <button class="pestana activa" id="aviso-bus" type="button" role="tab" aria-selected="true">Bus</button>
+    <button class="pestana" id="aviso-metro" type="button" role="tab" aria-selected="false">Metro</button>
+  </div>
   <div class="chips" id="chips-linea"></div>
   <p class="nota" id="pista-linea">Toca una línea para programarla.</p>
   <div id="caja-panel"></div>
