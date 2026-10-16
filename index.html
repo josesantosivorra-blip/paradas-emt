@@ -488,6 +488,10 @@
   .chip.ya { background: var(--azul-palido); color: rgba(0, 100, 180, 0.55); }
   .chip.apagado { background: var(--azul-palido); color: rgba(0, 100, 180, 0.7); }
   .chip.pequeno { font-size: 1.1rem; padding: 0.5rem 0.85rem; white-space: nowrap; }
+  .marca-metro {
+    font-size: 0.62em; vertical-align: 0.5em; margin-left: 0.15em;
+    letter-spacing: 0.04em; opacity: 0.75;
+  }
   .chip .punto {
     display: inline-block; width: 0.42rem; height: 0.42rem; border-radius: 50%;
     background: currentColor; margin-left: 0.4rem; vertical-align: 0.12em; opacity: 0.85;
@@ -1427,6 +1431,12 @@
         b.type = 'button';
         b.className = 'chip pequeno' + (elegida === clave ? '' : ' apagado');
         b.appendChild(document.createTextNode(p.linea));
+        if (esMetro(p)) {
+          var m = document.createElement('span');
+          m.className = 'marca-metro';
+          m.textContent = 'M';
+          b.appendChild(m);
+        }
         var tieneAviso = (prog[clave] && prog[clave].activo) ||
           (pun[clave] && (!pun[clave].caduca || Date.now() < pun[clave].caduca));
         if (tieneAviso) {
@@ -1436,7 +1446,7 @@
         }
         b.setAttribute('aria-pressed', elegida === clave ? 'true' : 'false');
         b.setAttribute('aria-label', 'Programar la línea ' + p.linea + ' en ' + p.calle +
-          (tieneAviso ? ', ya tiene aviso' : ''));
+          (p.destino ? ' hacia ' + p.destino : '') + (tieneAviso ? ', ya tiene aviso' : ''));
         b.addEventListener('click', function () {
           if (elegida === clave) { elegida = null; cajaPanel.textContent = ''; }
           else { elegida = clave; var t = tarjetaDe(clave); if (t) montaPanel(t); }
