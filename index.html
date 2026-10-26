@@ -611,6 +611,8 @@
   (function () {
     var LLAVE_LINEAS = 'paradas-emt:lineas';
     var LLAVE_EXTRAS = 'paradas-emt:extras';
+    var LLAVE_COPIA = 'paradas-emt:lineas-copia';
+    var LLAVE_BORRADAS = 'paradas-emt:borradas';
     var LLAVE_PROG = 'paradas-emt:programados';
     var LLAVE_PUNT = 'paradas-emt:puntuales';
     var LLAVE_VIEJA = 'paradas-emt:aviso';
@@ -668,18 +670,41 @@
 
     // Antes habia cuatro lineas fijas y otras anadidas aparte. Ahora es una sola lista
     // que se puede editar entera, asi que la primera vez la construimos juntando ambas.
+    function borradas() { var v = leeLS(LLAVE_BORRADAS, []); return Array.isArray(v) ? v : []; }
+
     function todas() {
       var v = leeLS(LLAVE_LINEAS, null);
-      if (!Array.isArray(v)) {
-        v = window.FIJAS.concat(extras());
-        escribeLS(LLAVE_LINEAS, v);
-      }
+      if (!Array.isArray(v)) v = window.FIJAS.concat(extras());
+
       var tocado = false;
       v.forEach(function (p) { if (!p.modo) { p.modo = 'bus'; tocado = true; } });
-      if (tocado) escribeLS(LLAVE_LINEAS, v);
+
+      // Red de seguridad: si alguna linea desaparecio de la lista sin que tu la
+      // borraras, la recuperamos de la copia o del formato antiguo.
+      var presentes = {};
+      v.forEach(function (p) { presentes[claveDe(p)] = true; });
+      var fuera = {};
+      borradas().forEach(function (c) { fuera[c] = true; });
+
+      var copia = leeLS(LLAVE_COPIA, []);
+      (Array.isArray(copia) ? copia : []).concat(extras()).forEach(function (p) {
+        if (!p || !p.parada || !p.linea) return;
+        if (!p.modo) p.modo = 'bus';
+        var c = claveDe(p);
+        if (presentes[c] || fuera[c]) return;
+        presentes[c] = true;
+        v.push(p);
+        tocado = true;
+      });
+
+      if (tocado) guardaLineas(v);
       return v;
     }
-    function guardaLineas(v) { escribeLS(LLAVE_LINEAS, v); }
+
+    function guardaLineas(v) {
+      escribeLS(LLAVE_LINEAS, v);
+      escribeLS(LLAVE_COPIA, v); // copia de seguridad, por si acaso
+    }
     function claveDe(p) {
       return (p.modo === 'metro' ? 'metro:' : '') + p.linea + '@' + p.parada +
         (p.destino ? '>' + p.destino : '');
@@ -1864,6 +1889,7 @@
             b.disabled = true;
           } else {
             b.addEventListener('click', function () {
+              escribeLS(LLAVE_BORRADAS, borradas().filter(function (c) { return c !== claveDe(nueva); }));
               var v = todas();
               v.push(nueva);
               guardaLineas(v);
@@ -1933,8 +1959,10 @@
           } else {
             b.setAttribute('aria-label', 'Añadir la línea ' + f.linea);
             b.addEventListener('click', function () {
+              var nueva = { modo: 'bus', linea: f.linea, parada: parada, calle: datos.calle };
+              escribeLS(LLAVE_BORRADAS, borradas().filter(function (c) { return c !== claveDe(nueva); }));
               var v = todas();
-              v.push({ linea: f.linea, parada: parada, calle: datos.calle });
+              v.push(nueva);
               guardaLineas(v);
               cerrarHoja();
               campo.value = '';
@@ -1983,6 +2011,11 @@
           }
           if (donde === -1) return;
           var fuera = lista.splice(donde, 1)[0];
+          if (fuera) {
+            var bo = borradas();
+            if (bo.indexOf(claveDe(fuera)) === -1) bo.push(claveDe(fuera));
+            escribeLS(LLAVE_BORRADAS, bo);
+          }
           guardaLineas(lista);
           if (fuera) {
             borraPrograma(claveDe(fuera));
