@@ -178,26 +178,35 @@
     font-variant-numeric: tabular-nums;
     max-width: 100%; overflow-wrap: anywhere;
   }
+  /* Una sola linea siempre: lo que no cabe se recorta con puntos suspensivos. */
   .calle {
     display: flex; align-items: center; justify-content: center;
-    flex-wrap: wrap; gap: 0.1em 0.55em;
+    flex-wrap: nowrap; gap: 0 0.45em;
+    width: 100%; min-width: 0;
     font-size: clamp(0.72rem, 1.9vh, 0.95rem);
     line-height: 1.25; letter-spacing: 0.07em; text-transform: uppercase;
     color: var(--tenue);
     padding-inline: 0.5rem;
   }
+  .calle > * {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .texto-calle { flex: 0 1 auto; }
   .icono-reloj {
     width: 1.1em; height: 1.1em; flex: none;
     stroke: currentColor; fill: none;
     stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round;
   }
   .destino {
-    display: inline-flex; align-items: center; gap: 0.25em;
-    color: var(--muy-tenue); white-space: nowrap;
+    flex: 0 1 auto;
+    color: var(--muy-tenue);
   }
   .programado {
     display: inline-flex; align-items: center; gap: 0.32em;
-    white-space: nowrap; line-height: 1;
+    flex: none; overflow: visible; line-height: 1;
   }
   .tiempos {
     margin-top: 0.35em; min-height: 1.5em;

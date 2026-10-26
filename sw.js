@@ -1,5 +1,5 @@
 // Cachea la app para que abra sin cobertura, y recibe los avisos de bus.
-const CACHE = 'paradas-emt-v29';
+const CACHE = 'paradas-emt-v30';
 const SHELL = ['./', './index.html', './icono.png', './manifest.json'];
 
 self.addEventListener('install', (e) => {
