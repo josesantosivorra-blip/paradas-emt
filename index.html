@@ -34,10 +34,30 @@
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
       .finally(function () { clearTimeout(corta); });
   };
+  // Lanzamos las peticiones de TUS lineas guardadas (bus y metro) antes de pintar nada.
   window.PRECARGA = {};
-  window.FIJAS.forEach(function (p) {
-    window.PRECARGA[p.parada] = window.pedir(p.parada).catch(function (e) { return e; });
-  });
+  (function precarga() {
+    var lista;
+    try {
+      var crudo = localStorage.getItem('paradas-emt:lineas');
+      lista = crudo ? JSON.parse(crudo) : null;
+    } catch (e) { lista = null; }
+    if (!Array.isArray(lista) || !lista.length) lista = window.FIJAS;
+
+    var vistas = {};
+    lista.forEach(function (p) {
+      if (!p || !p.parada) return;
+      var modo = p.modo === 'metro' ? 'metro' : 'bus';
+      var llave = modo + ':' + p.parada;
+      if (vistas[llave]) return;
+      vistas[llave] = true;
+      var peticion = modo === 'metro'
+        ? fetch(window.VIGILANTE + '/metro?cod=' + encodeURIComponent(p.parada), { cache: 'no-store' })
+            .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        : window.pedir(p.parada);
+      window.PRECARGA[llave] = peticion.catch(function (e) { return e; });
+    });
+  })();
 </script>
 <style>
   /* Columna de bandas azules. Cada una se despliega con su propia programacion. */
@@ -624,6 +644,8 @@
     var tarjetas = [];
     var elegida = null;
     var ultima = 0;
+    var ARRANQUE = Date.now();
+    var pendienteVersion = false;
 
     // ---------- almacen ----------
     function leeLS(llave, pordefecto) {
@@ -795,8 +817,15 @@
 
     // Devuelve siempre la misma forma, venga de donde venga.
     function datosDe(p) {
-      if (p.modo === 'metro') return pedirMetro(p.parada);
-      var pre = window.PRECARGA[p.parada];
+      var esMet = p.modo === 'metro';
+      var pre = window.PRECARGA[(esMet ? 'metro:' : 'bus:') + p.parada];
+      if (esMet) {
+        if (!pre) return pedirMetro(p.parada);
+        return Promise.resolve(pre).then(function (d) {
+          if (!d || d.error || !d.filas) throw (d && d.error) || new Error('sin datos');
+          return { calle: d.calle || '', filas: d.filas };
+        });
+      }
       var promesa = pre ? Promise.resolve(pre) : window.pedir(p.parada);
       return promesa.then(function (html) {
         if (typeof html !== 'string') throw html;
@@ -1991,6 +2020,7 @@
     }, 30000);
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState !== 'visible') return;
+      if (pendienteVersion && !abierta) { location.reload(); return; }
       reconciliar();
       if (Date.now() - ultima > 10000) refrescar();
     });
@@ -2003,7 +2033,13 @@
         navigator.serviceWorker.register('./sw.js').catch(function () {});
       });
       navigator.serviceWorker.addEventListener('message', function (e) {
-        if (e.data && e.data.tipo === 'aviso-lanzado') reconciliar(true);
+        if (!e.data) return;
+        if (e.data.tipo === 'aviso-lanzado') { reconciliar(true); return; }
+        if (e.data.tipo === 'version-nueva') {
+          // Nada de recargar mientras estas usando la app: solo si acabas de abrirla.
+          if (abierta || Date.now() - ARRANQUE > 4000) { pendienteVersion = true; return; }
+          location.reload();
+        }
       });
     }
   })();

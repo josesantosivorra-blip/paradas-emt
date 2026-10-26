@@ -1,7 +1,6 @@
 // Cachea la app para que abra sin cobertura, y recibe los avisos de bus.
-const CACHE = 'paradas-emt-v28';
+const CACHE = 'paradas-emt-v29';
 const SHELL = ['./', './index.html', './icono.png', './manifest.json'];
-const ESPERA_RED = 2000;
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -14,6 +13,12 @@ self.addEventListener('activate', (e) => {
       .then(() => self.clients.claim())
   );
 });
+
+function avisaDeVersionNueva() {
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then((ventanas) => ventanas.forEach((v) => v.postMessage({ tipo: 'version-nueva' })))
+    .catch(() => {});
+}
 
 function guardar(peticion, respuesta) {
   if (respuesta && respuesta.ok) {
@@ -31,29 +36,26 @@ self.addEventListener('fetch', (e) => {
   const esPagina = e.request.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('.html');
 
   if (esPagina) {
-    // La pagina: red primero, para no quedarnos con una version vieja.
+    // La pagina se sirve de la copia guardada al instante: abrir no debe esperar a la red.
+    // Por detras se descarga la ultima y, si ha cambiado, se avisa a la app.
     e.respondWith(
-      new Promise((resolve) => {
-        let resuelto = false;
-        const conCache = () => caches.match(e.request).then((c) => c || caches.match('./index.html'));
-        const reloj = setTimeout(() => {
-          if (resuelto) return;
-          conCache().then((c) => { if (c && !resuelto) { resuelto = true; resolve(c); } });
-        }, ESPERA_RED);
-        fetch(e.request)
-          .then((r) => {
-            guardar(e.request, r);
-            clearTimeout(reloj);
-            if (!resuelto) { resuelto = true; resolve(r); }
+      caches.match(e.request).then((cacheada) => {
+        const red = fetch(e.request)
+          .then(async (r) => {
+            if (!r || !r.ok) return r;
+            const paraCache = r.clone();
+            if (cacheada) {
+              try {
+                const [nuevo, viejo] = await Promise.all([r.clone().text(), cacheada.clone().text()]);
+                if (nuevo !== viejo) avisaDeVersionNueva();
+              } catch (err) { /* da igual: igualmente guardamos */ }
+            }
+            const c = await caches.open(CACHE);
+            await c.put(e.request, paraCache);
+            return r;
           })
-          .catch(() => {
-            clearTimeout(reloj);
-            conCache().then((c) => {
-              if (resuelto) return;
-              resuelto = true;
-              resolve(c || Response.error());
-            });
-          });
+          .catch(() => cacheada || caches.match('./index.html'));
+        return cacheada || red;
       })
     );
     return;
